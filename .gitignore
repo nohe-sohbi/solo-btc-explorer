@@ -6,7 +6,8 @@ vendor/
 dist/
 build/
 *.exe
-soloforge
+/soloforge
+/backend/soloforge
 
 # IDE
 .idea/
