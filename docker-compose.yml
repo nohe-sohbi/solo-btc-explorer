@@ -1,13 +1,11 @@
 services:
-  # Go Backend - Mining Server
+  # Go Backend - Stratum Proxy (lightweight, no mining)
   backend:
     build: ./backend
     restart: unless-stopped
     environment:
       - POOL_URL=solo.ckpool.org
       - POOL_PORT=3333
-    volumes:
-      - ./data:/app/data
     networks:
       - soloforge-network
     healthcheck:
@@ -16,7 +14,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # React Frontend - Dashboard
+  # React Frontend - Dashboard (mining runs in browser)
   frontend:
     build: ./frontend
     restart: unless-stopped
@@ -28,6 +26,3 @@ services:
 networks:
   soloforge-network:
     driver: bridge
-
-volumes:
-  soloforge-data:

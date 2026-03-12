@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useWebSocket, useAPI } from './hooks/useWebSocket';
+import { useAPI } from './hooks/useWebSocket';
+import { useStratumProxy } from './hooks/useStratumProxy';
+import { useMiningManager, cpuToThrottle } from './hooks/useMiningManager';
+import { useLocalStats } from './hooks/useLocalStats';
 import { translations } from './translations';
 
 // =============================================================================
@@ -217,9 +220,9 @@ function WorkerCard({ worker, onRemove, t }) {
 }
 
 // =============================================================================
-// COMPONENT: SettingsPanel with save feedback
+// COMPONENT: SettingsPanel
 // =============================================================================
-function SettingsPanel({ config, onSave, isMining, t, showToast }) {
+function SettingsPanel({ config, onSave, onThrottleChange, isMining, t, showToast }) {
     const [localConfig, setLocalConfig] = useState(config);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -229,6 +232,10 @@ function SettingsPanel({ config, onSave, isMining, t, showToast }) {
 
     const handleChange = (key, value) => {
         setLocalConfig(prev => ({ ...prev, [key]: value }));
+        // Live throttle update during mining
+        if (key === 'max_cpu_percent' && isMining && onThrottleChange) {
+            onThrottleChange(value);
+        }
     };
 
     const handleSave = async () => {
@@ -343,7 +350,7 @@ function SettingsPanel({ config, onSave, isMining, t, showToast }) {
 // =============================================================================
 // COMPONENT: HistoryPanel
 // =============================================================================
-function HistoryPanel({ history, sessions, t }) {
+function HistoryPanel({ shareHistory, sessionHistory, t }) {
     const [activeTab, setActiveTab] = useState('shares');
 
     const formatTime = (timestamp) => {
@@ -376,7 +383,7 @@ function HistoryPanel({ history, sessions, t }) {
             </div>
 
             {activeTab === 'shares' && (
-                (!history?.shares || history.shares.length === 0) ? (
+                (!shareHistory || shareHistory.length === 0) ? (
                     <div style={{ padding: 'var(--space-4)', textAlign: 'center' }}>
                         <p className="text-muted" style={{ marginBottom: 'var(--space-2)' }}>
                             {t('noSharesYet')}
@@ -397,7 +404,7 @@ function HistoryPanel({ history, sessions, t }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {history.shares.slice(0, 20).map((share, index) => (
+                                {shareHistory.slice(0, 20).map((share, index) => (
                                     <tr key={index}>
                                         <td className="mono">{formatTime(share.timestamp)}</td>
                                         <td>{share.worker_name}</td>
@@ -416,7 +423,7 @@ function HistoryPanel({ history, sessions, t }) {
             )}
 
             {activeTab === 'sessions' && (
-                (!sessions || sessions.length === 0) ? (
+                (!sessionHistory || sessionHistory.length === 0) ? (
                     <div style={{ padding: 'var(--space-4)', textAlign: 'center' }}>
                         <p className="text-muted">{t('noSharesYet')}</p>
                     </div>
@@ -432,7 +439,7 @@ function HistoryPanel({ history, sessions, t }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {sessions.map((session, index) => (
+                                {sessionHistory.map((session, index) => (
                                     <tr key={index}>
                                         <td className="mono">{formatDate(session.start_time)}</td>
                                         <td>{session.duration}</td>
@@ -453,8 +460,10 @@ function HistoryPanel({ history, sessions, t }) {
 // MAIN APP COMPONENT
 // =============================================================================
 function App() {
-    const { isConnected, stats, lastMessage } = useWebSocket();
     const api = useAPI();
+    const stratum = useStratumProxy();
+    const mining = useMiningManager();
+    const localStats = useLocalStats();
 
     const [theme, setTheme] = useState(() => localStorage.getItem('soloforge-theme') || 'dark');
     const [lang, setLang] = useState(() => localStorage.getItem('soloforge-lang') || 'fr');
@@ -468,12 +477,12 @@ function App() {
         num_workers: 1
     });
     const [isMining, setIsMining] = useState(false);
-    const [history, setHistory] = useState({ shares: [], blocks: [] });
-    const [sessions, setSessions] = useState([]);
-    const [workers, setWorkers] = useState([]);
     const [logs, setLogs] = useState([]);
     const [toast, setToast] = useState(null);
-    const lastJobRef = useRef(null);
+    const [miningUptime, setMiningUptime] = useState(0);
+    const sessionRef = useRef(null);
+    const uptimeIntervalRef = useRef(null);
+    const firstJobReceivedRef = useRef(false);
 
     // Theme effect
     useEffect(() => {
@@ -497,55 +506,82 @@ function App() {
         setToast(null);
     }, []);
 
-    // Load initial config and status
-    useEffect(() => {
-        api.get('/config').then(setConfig).catch(console.error);
-        api.get('/status').then(status => {
-            if (status && status.running) {
-                setIsMining(true);
-            }
-        }).catch(console.error);
-    }, []);
-
-    // Update workers from stats
-    useEffect(() => {
-        if (stats?.workers) {
-            // Sort workers by ID to prevent jumping
-            const sorted = [...stats.workers].sort((a, b) => a.id - b.id);
-            setWorkers(sorted);
-        }
-        if (stats?.connected !== undefined) setIsMining(stats.connected);
-    }, [stats]);
-
     // Add log entry
     const addLog = useCallback((message, color = 'var(--text-secondary)') => {
         const time = new Date().toLocaleTimeString();
         setLogs(prev => [...prev.slice(-100), { time, message, color }]);
     }, []);
 
-    // Listen to WebSocket events for log notifications from backend
+    // Wire up stratum proxy log callback
     useEffect(() => {
-        if (!lastMessage) return;
+        stratum.setOnLog(addLog);
+    }, [stratum.setOnLog, addLog]);
 
-        // Handle log events from backend (job, connect, disconnect, share)
-        if (lastMessage.type === 'log' && lastMessage.data?.message) {
-            addLog(lastMessage.data.message, lastMessage.data.color || 'var(--text-secondary)');
-        }
+    // Wire up stratum proxy job callback — broadcast to workers
+    useEffect(() => {
+        stratum.setOnJob((job) => {
+            mining.broadcastJob(job);
 
-        // Handle legacy job events (if still used)
-        if (lastMessage.type === 'job' && lastMessage.data?.job_id) {
-            const jobId = lastMessage.data.job_id;
-            if (jobId !== lastJobRef.current) {
-                lastJobRef.current = jobId;
-                addLog(`📦 ${t('logNewJob')} ${jobId.substring(0, 16)}...`, 'var(--info)');
+            // If first job and we haven't started workers yet, start them now
+            if (!firstJobReceivedRef.current && isMining) {
+                firstJobReceivedRef.current = true;
+                const throttle = cpuToThrottle(config.max_cpu_percent || 80);
+                const numWorkers = config.num_workers || 1;
+                mining.startAll(
+                    stratum.extranonce1,
+                    stratum.extranonce2Size,
+                    numWorkers,
+                    job,
+                    throttle
+                );
+                addLog(`${t('logWorkerAdded')} x${numWorkers}`, 'var(--success)');
             }
-        }
+        });
+    }, [stratum.setOnJob, mining.broadcastJob, mining.startAll, stratum.extranonce1, stratum.extranonce2Size, isMining, config, addLog, t]);
 
-        // Handle block events
-        if (lastMessage.type === 'block') {
-            addLog(`🆕 ${t('logNewBlock')}`, 'var(--warning)');
-        }
-    }, [lastMessage, t, addLog]);
+    // Wire up share found callback — submit to pool and record in local stats
+    useEffect(() => {
+        mining.setOnShareFound((share) => {
+            stratum.submitShare(
+                config.wallet_address,
+                share.jobId,
+                share.extranonce2,
+                share.ntime,
+                share.nonce
+            );
+            localStats.addShare(share);
+            addLog(t('logNewShare'), 'var(--success)');
+        });
+    }, [mining.setOnShareFound, stratum.submitShare, config.wallet_address, localStats.addShare, addLog, t]);
+
+    // Load initial config
+    useEffect(() => {
+        api.get('/config').then(serverConfig => {
+            setConfig(prev => ({
+                ...prev,
+                ...serverConfig
+            }));
+        }).catch(console.error);
+    }, []);
+
+    // Periodic log entries
+    useEffect(() => {
+        if (!isMining) return;
+        const interval = setInterval(() => {
+            if (mining.totalHashrate > 0) {
+                const messages = [
+                    { msg: `${t('logMining')} ${formatHashrate(mining.totalHashrate)}`, color: 'var(--text-secondary)' },
+                    { msg: t('logSearching'), color: 'var(--text-muted)' },
+                    { msg: `${t('logHashes')} ${formatNumber(mining.totalHashes)}`, color: 'var(--text-secondary)' },
+                    { msg: `${t('logBestDiff')} ${mining.bestDifficulty.toFixed(6)}`, color: 'var(--gold)' },
+                    { msg: `👷 ${mining.workers.length} ${t('workersActive')}`, color: 'var(--text-secondary)' },
+                ];
+                const selected = messages[Math.floor(Math.random() * messages.length)];
+                addLog(selected.msg, selected.color);
+            }
+        }, 4000);
+        return () => clearInterval(interval);
+    }, [isMining, mining.totalHashrate, mining.totalHashes, mining.bestDifficulty, mining.workers.length, t, addLog]);
 
     // Format functions
     const formatHashrate = (hash) => {
@@ -575,45 +611,14 @@ function App() {
         return `${s}s`;
     };
 
-    // Periodic log entries with more variety
-    useEffect(() => {
-        if (!isMining || !stats) return;
-        const interval = setInterval(() => {
-            if (stats.hashrate > 0) {
-                const messages = [
-                    { msg: `${t('logMining')} ${formatHashrate(stats.hashrate)}`, color: 'var(--text-secondary)' },
-                    { msg: t('logSearching'), color: 'var(--text-muted)' },
-                    { msg: `${t('logHashes')} ${formatNumber(stats.total_hashes)}`, color: 'var(--text-secondary)' },
-                    { msg: `${t('logBestDiff')} ${(stats.best_difficulty || 0).toFixed(6)}`, color: 'var(--gold)' },
-                    { msg: `👷 ${workers.length} ${t('workersActive')}`, color: 'var(--text-secondary)' },
-                ];
-                const selected = messages[Math.floor(Math.random() * messages.length)];
-                addLog(selected.msg, selected.color);
-            }
-        }, 4000);
-        return () => clearInterval(interval);
-    }, [isMining, stats, t, addLog, workers.length]);
-
-    // Fetch history
-    useEffect(() => {
-        const fetchHistory = () => {
-            api.get('/history?limit=50').then(data => {
-                if (history.shares.length > 0 && data.shares.length > history.shares.length) {
-                    addLog(t('logNewShare'), 'var(--success)');
-                }
-                setHistory(data);
-            }).catch(console.error);
-
-            api.get('/sessions?limit=50').then(setSessions).catch(console.error);
-        };
-        fetchHistory();
-        const interval = setInterval(fetchHistory, 10000);
-        return () => clearInterval(interval);
-    }, [history.shares.length, t, addLog]);
-
     const handleSaveConfig = async (newConfig) => {
         try {
-            await api.put('/config', newConfig);
+            // Save pool settings to backend (for proxy)
+            await api.put('/config', {
+                pool_url: newConfig.pool_url,
+                pool_port: newConfig.pool_port,
+                wallet_address: newConfig.wallet_address
+            });
             setConfig(newConfig);
             showToast(t('logConfigSaved'), 'success');
             addLog(t('logConfigSaved'), 'var(--success)');
@@ -623,56 +628,98 @@ function App() {
         }
     };
 
+    const handleThrottleChange = useCallback((cpuPercent) => {
+        const throttle = cpuToThrottle(cpuPercent);
+        mining.setThrottle(throttle.batchSize, throttle.sleepMs);
+    }, [mining.setThrottle]);
+
     const handleStartMining = async () => {
         if (!config.wallet_address) {
             alert(t('enterWalletFirst'));
             return;
         }
+
+        addLog(t('logStarting'), 'var(--warning)');
+        setIsMining(true);
+        firstJobReceivedRef.current = false;
+
+        // Save config to backend first (so proxy knows where to connect)
         try {
-            addLog(t('logStarting'), 'var(--warning)');
-            await api.post('/mining/start', {});
-            setIsMining(true);
-            addLog(t('logStarted'), 'var(--success)');
-            addLog(`${t('logConnectedTo')} ${config.pool_url}:${config.pool_port}`, 'var(--info)');
-            showToast(t('logStarted'), 'success');
+            await api.put('/config', {
+                pool_url: config.pool_url,
+                pool_port: config.pool_port,
+                wallet_address: config.wallet_address
+            });
         } catch (err) {
-            addLog(t('logStartFailed'), 'var(--error)');
-            showToast(t('logStartFailed'), 'error');
+            // Non-fatal, proxy will use whatever config it has
         }
+
+        // Connect to pool via proxy
+        stratum.connect();
+
+        // Start uptime counter
+        sessionRef.current = localStats.startSession();
+        setMiningUptime(0);
+        uptimeIntervalRef.current = setInterval(() => {
+            setMiningUptime(prev => prev + 1);
+        }, 1000);
+
+        addLog(t('logStarted'), 'var(--success)');
+        addLog(`${t('logConnectedTo')} ${config.pool_url}:${config.pool_port}`, 'var(--info)');
+        showToast(t('logStarted'), 'success');
     };
 
-    const handleStopMining = async () => {
-        try {
-            addLog(t('logStopping'), 'var(--warning)');
-            await api.post('/mining/stop', {});
-            setIsMining(false);
-            addLog(t('logStopped'), 'var(--text-muted)');
-        } catch (err) {
-            console.error(err);
+    // Auto subscribe+authorize when pool connection is established
+    useEffect(() => {
+        if (isMining && stratum.poolConnected && !stratum.authorized) {
+            stratum.subscribe();
+            // Small delay to let subscribe response arrive before authorize
+            setTimeout(() => {
+                stratum.authorize(config.wallet_address);
+            }, 500);
         }
+    }, [isMining, stratum.poolConnected, stratum.authorized, config.wallet_address]);
+
+    const handleStopMining = () => {
+        addLog(t('logStopping'), 'var(--warning)');
+        mining.stopAll();
+        stratum.disconnect();
+        setIsMining(false);
+        firstJobReceivedRef.current = false;
+
+        // Stop uptime counter and record session
+        if (uptimeIntervalRef.current) {
+            clearInterval(uptimeIntervalRef.current);
+            uptimeIntervalRef.current = null;
+        }
+        localStats.endSession(sessionRef.current, mining.totalHashes, mining.bestDifficulty);
+        sessionRef.current = null;
+
+        addLog(t('logStopped'), 'var(--text-muted)');
     };
 
-    const handleAddWorker = async () => {
-        try {
-            await api.post('/workers', { name: '' });
-            addLog(t('logWorkerAdded'), 'var(--success)');
-        } catch (err) {
-            console.error(err);
-        }
+    const handleAddWorker = () => {
+        if (!isMining) return;
+        const throttle = cpuToThrottle(config.max_cpu_percent || 80);
+        mining.addWorker(
+            stratum.extranonce1,
+            stratum.extranonce2Size,
+            stratum.currentJob,
+            throttle
+        );
+        addLog(t('logWorkerAdded'), 'var(--success)');
     };
 
-    const handleRemoveWorker = async (id) => {
-        try {
-            await api.delete(`/workers/${id}`);
-            addLog(`${t('logWorkerRemoved')} #${id}`, 'var(--warning)');
-        } catch (err) {
-            console.error(err);
-        }
+    const handleRemoveWorker = (id) => {
+        mining.removeWorker(id);
+        addLog(`${t('logWorkerRemoved')} #${id}`, 'var(--warning)');
     };
 
-    const bestDiff = stats?.best_difficulty || 0;
+    const bestDiff = mining.bestDifficulty;
     const networkDifficulty = 75e12;
     const diffProgress = bestDiff > 0 ? Math.log10(bestDiff + 1) / Math.log10(networkDifficulty) * 100 : 0;
+
+    const isConnected = stratum.poolConnected && stratum.authorized;
 
     // Helper to get theme-specific asset
     const getAsset = (name) => {
@@ -739,27 +786,27 @@ function App() {
                             <StatCard
                                 icon={getAsset('icon-hash')}
                                 label={t('hashrate')}
-                                value={formatHashrate(stats?.hashrate)}
+                                value={formatHashrate(mining.totalHashrate)}
                                 variant="gold"
                                 subtitle={t('updatesEverySecond')}
                             />
                             <StatCard
                                 icon={getAsset('icon-block')}
                                 label={t('totalHashes')}
-                                value={formatNumber(stats?.total_hashes)}
+                                value={formatNumber(mining.totalHashes)}
                                 subtitle={isMining ? t('computing') : t('startMiningPrompt')}
                             />
                             <StatCard
                                 icon={getAsset('icon-wallet')}
                                 label={t('sharesFound')}
-                                value={stats?.total_shares || 0}
+                                value={localStats.stats.totalShares || 0}
                                 subtitle={t('sharesExplanation')}
                                 tooltip={t('sharesTooltip')}
                             />
                             <StatCard
                                 icon={getAsset('icon-cpu')}
                                 label={t('bestDifficulty')}
-                                value={(stats?.best_difficulty || 0).toFixed(4)}
+                                value={bestDiff.toFixed(4)}
                                 subtitle={bestDiff > 0 ? `${diffProgress.toFixed(8)}${t('ofNetwork')}` : t('searching')}
                                 tooltip={t('difficultyTooltip')}
                             />
@@ -789,12 +836,12 @@ function App() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            {workers.length === 0 ? (
+                            {mining.workers.length === 0 ? (
                                 <div className="glass-card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
                                     <p className="text-muted">{t('noActiveWorkers')}</p>
                                 </div>
                             ) : (
-                                workers.map(worker => (
+                                mining.workers.map(worker => (
                                     <WorkerCard key={worker.id} worker={worker} onRemove={handleRemoveWorker} t={t} />
                                 ))
                             )}
@@ -804,14 +851,25 @@ function App() {
                     {/* Settings & Logs */}
                     <section className="section">
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
-                            <SettingsPanel config={config} onSave={handleSaveConfig} isMining={isMining} t={t} showToast={showToast} />
+                            <SettingsPanel
+                                config={config}
+                                onSave={handleSaveConfig}
+                                onThrottleChange={handleThrottleChange}
+                                isMining={isMining}
+                                t={t}
+                                showToast={showToast}
+                            />
                             <LiveLog logs={logs} t={t} />
                         </div>
                     </section>
 
                     {/* History */}
                     <section className="section">
-                        <HistoryPanel history={history} sessions={sessions} t={t} />
+                        <HistoryPanel
+                            shareHistory={localStats.getShareHistory()}
+                            sessionHistory={localStats.getSessionHistory()}
+                            t={t}
+                        />
                     </section>
 
                     {/* Footer Stats */}
@@ -823,11 +881,11 @@ function App() {
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="text-muted">{t('uptime')}:</span>
-                                <span className="font-mono">{formatUptime(stats?.uptime_seconds)}</span>
+                                <span className="font-mono">{formatUptime(miningUptime)}</span>
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="text-muted">{t('workers')}:</span>
-                                <span className="font-mono">{workers.length}</span>
+                                <span className="font-mono">{mining.workers.length}</span>
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="text-muted">{t('cpuLimit')}:</span>
