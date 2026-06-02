@@ -94,6 +94,10 @@ export const translations = {
 
         // Alerts
         enterWalletFirst: 'Please enter your Bitcoin wallet address first!',
+
+        // Demo banner
+        demoBannerLabel: 'DEMO —',
+        demoBannerText: 'Mining runs entirely in your browser (real SHA-256d proof-of-work on a real Bitcoin block from mempool.space). No backend, and it will not realistically find a block. The real version mines server-side in Go via the Stratum protocol.',
     },
 
     fr: {
@@ -190,6 +194,10 @@ export const translations = {
 
         // Alerts
         enterWalletFirst: 'Veuillez d\'abord entrer votre adresse wallet Bitcoin !',
+
+        // Demo banner
+        demoBannerLabel: 'DÉMO —',
+        demoBannerText: 'Le mining tourne entièrement dans votre navigateur (vrai proof-of-work SHA-256d sur un bloc Bitcoin réel issu de mempool.space). Aucun backend, et cela ne trouvera pas de bloc de façon réaliste. La vraie version mine côté serveur en Go via le protocole Stratum.',
     }
 };
 

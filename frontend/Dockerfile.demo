@@ -1,0 +1,26 @@
+# Demo build: client-side mining, no backend. Deploy this on Dokploy.
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+# Enable the in-browser mining engine + demo banner at build time
+ENV VITE_DEMO_MODE=true
+RUN npm run build
+
+# Runtime stage
+FROM nginx:alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Static-only nginx config (no /api or /ws proxy)
+COPY nginx.demo.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 3000
+
+CMD ["nginx", "-g", "daemon off;"]

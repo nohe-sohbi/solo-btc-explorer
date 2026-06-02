@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocket, useAPI } from './hooks/useWebSocket';
 import { translations } from './translations';
+import DemoBanner from './components/DemoBanner';
 
 // =============================================================================
 // HOOK: useTranslation
@@ -486,8 +487,16 @@ function App() {
         localStorage.setItem('soloforge-lang', lang);
     }, [lang]);
 
-    const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-    const toggleLang = () => setLang(prev => prev === 'en' ? 'fr' : 'en');
+    const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        window.umami?.track('theme_toggle', { theme: next });
+        setTheme(next);
+    };
+    const toggleLang = () => {
+        const next = lang === 'en' ? 'fr' : 'en';
+        window.umami?.track('lang_toggle', { lang: next });
+        setLang(next);
+    };
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -615,6 +624,7 @@ function App() {
         try {
             await api.put('/config', newConfig);
             setConfig(newConfig);
+            window.umami?.track('save_config');
             showToast(t('logConfigSaved'), 'success');
             addLog(t('logConfigSaved'), 'var(--success)');
         } catch (err) {
@@ -631,6 +641,7 @@ function App() {
         try {
             addLog(t('logStarting'), 'var(--warning)');
             await api.post('/mining/start', {});
+            window.umami?.track('start_mining', { workers: config.num_workers, cpu: config.max_cpu_percent });
             setIsMining(true);
             addLog(t('logStarted'), 'var(--success)');
             addLog(`${t('logConnectedTo')} ${config.pool_url}:${config.pool_port}`, 'var(--info)');
@@ -645,6 +656,7 @@ function App() {
         try {
             addLog(t('logStopping'), 'var(--warning)');
             await api.post('/mining/stop', {});
+            window.umami?.track('stop_mining');
             setIsMining(false);
             addLog(t('logStopped'), 'var(--text-muted)');
         } catch (err) {
@@ -655,6 +667,7 @@ function App() {
     const handleAddWorker = async () => {
         try {
             await api.post('/workers', { name: '' });
+            window.umami?.track('add_worker');
             addLog(t('logWorkerAdded'), 'var(--success)');
         } catch (err) {
             console.error(err);
@@ -682,6 +695,8 @@ function App() {
 
     return (
         <div className="app-layout">
+            <DemoBanner t={t} />
+
             {/* Toast notification */}
             {toast && (
                 <Toast
