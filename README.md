@@ -4,7 +4,19 @@
   <img src="frontend/public/assets/icon-block.png" alt="SoloForge Logo" width="100">
 </p>
 
-A premium solo Bitcoin mining dashboard with a modern "Noble Materials" aesthetic. Chase the block reward with style.
+Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and streams live stats to a React dashboard over WebSocket. It also ships a **backend-free demo** that performs real SHA-256d proof-of-work client-side in the browser.
+
+**Live demo:** [solo-btc.sohbi.dev](https://solo-btc.sohbi.dev) — mining runs entirely in your browser (real hashing on a live Bitcoin block from mempool.space). It won't realistically find a block; that's the point of solo mining.
+
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/dashboard-dark.png" alt="SoloForge dashboard — dark mode, mining" width="820">
+</p>
+
+<p align="center">
+  <img src="screenshots/dashboard-light.png" alt="SoloForge dashboard — light mode" width="820">
+</p>
 
 ## Features
 
