@@ -32,6 +32,9 @@ func main() {
 	manager := miner.NewManager()
 	statsCollector := stats.NewCollector(1000)
 
+	// Create the HTTP server up front so callbacks can stream events to dashboards.
+	server := api.NewServer(cfg, stratumClient, manager, statsCollector)
+
 	// Wire up callbacks: when a share is found, submit it via stratum
 	manager.SetShareCallback(func(workerID int, jobID, extranonce2, ntime, nonce string, difficulty float64) {
 		wallet := cfg.GetWalletAddress()
@@ -46,13 +49,46 @@ func main() {
 		statsCollector.AddShare(workerID, workerName, jobID, nonce, difficulty, true)
 	})
 
+	// Wire up block callback: a hash meeting the full network target is a candidate block.
+	manager.SetBlockCallback(func(workerID int, nonce string, difficulty float64) {
+		prevHash := ""
+		if job := stratumClient.GetCurrentJob(); job != nil {
+			prevHash = job.PrevHash
+		}
+		statsCollector.AddBlock(0, prevHash)
+		log.Printf("🆕 BLOCK CANDIDATE found by worker %d (difficulty %.2f)", workerID, difficulty)
+		server.BroadcastBlock(difficulty)
+		server.BroadcastLog("🆕 Block candidate found!", "var(--gold)")
+	})
+
 	// Wire up job callback: broadcast new jobs to all workers
 	stratumClient.SetJobCallback(func(job *stratum.Job) {
 		manager.BroadcastJob(job)
 	})
 
-	// Create and start HTTP server
-	server := api.NewServer(cfg, stratumClient, manager, statsCollector)
+	// Pool difficulty changes adjust the workers' share target.
+	stratumClient.SetDifficultyCallback(func(difficulty float64) {
+		manager.SetShareDifficulty(difficulty)
+		server.BroadcastLog(fmt.Sprintf("🎚️ Pool difficulty set to %g", difficulty), "var(--info)")
+	})
+
+	// Keep the manager's extranonce in sync (initial subscribe and reconnects).
+	stratumClient.SetSubscribedCallback(func(extranonce1 string, extranonce2Size int) {
+		manager.SetStratumData(extranonce1, extranonce2Size)
+	})
+
+	// Surface connection lifecycle on the dashboard.
+	stratumClient.SetConnectedCallback(func() {
+		server.BroadcastLog("📡 Connected to pool", "var(--success)")
+	})
+	stratumClient.SetDisconnectedCallback(func(err error) {
+		server.BroadcastLog("⚠️ Disconnected from pool — reconnecting...", "var(--warning)")
+	})
+
+	// Recover automatically from dropped pool connections.
+	stratumClient.SetAutoReconnect(true)
+
+	// Start broadcasting stats to dashboards.
 	server.StartStatsLoop()
 
 	addr := fmt.Sprintf(":%d", *port)

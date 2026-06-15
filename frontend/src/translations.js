@@ -52,6 +52,14 @@ export const translations = {
         initialWorkersHelp: 'Number of workers created at startup. You can add/remove dynamically after.',
         saveSettings: 'Save',
 
+        // Hashrate chart
+        hashrateChartTitle: '📈 Hashrate History',
+        lastSamples: 'Last 60s',
+        chartWaiting: 'Waiting for hashrate data...',
+        chartCurrent: 'Current',
+        chartPeak: 'Peak',
+        chartAverage: 'Average',
+
         // Live Log
         liveActivity: '📡 Live Activity',
         startMiningToSee: 'Start mining to see live activity...',
@@ -151,6 +159,14 @@ export const translations = {
         initialWorkers: 'Workers Initiaux',
         initialWorkersHelp: 'Nombre de workers créés au démarrage. Vous pouvez en ajouter/supprimer après.',
         saveSettings: 'Sauvegarder',
+
+        // Hashrate chart
+        hashrateChartTitle: '📈 Historique du Hashrate',
+        lastSamples: '60 dernières s',
+        chartWaiting: 'En attente de données de hashrate...',
+        chartCurrent: 'Actuel',
+        chartPeak: 'Pic',
+        chartAverage: 'Moyenne',
 
         // Live Log
         liveActivity: '📡 Activité en Direct',

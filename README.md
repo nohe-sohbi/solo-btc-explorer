@@ -22,10 +22,15 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
 
 - 🎰 **Solo Mining** - Connect to solo mining pools and try your luck at winning a full block reward
 - 📊 **Real-time Dashboard** - Live hashrate, shares, difficulty, and worker statistics via WebSocket
+- 📈 **Hashrate History Chart** - Live SVG sparkline of recent hashrate with current / peak / average
 - ⛏️ **Multi-Worker Support** - Run multiple mining workers simultaneously
 - 🎚️ **CPU Throttling** - Control how much CPU power to dedicate to mining
 - 🔧 **Configurable Pools** - Default to `solo.ckpool.org` or set your own
+- 🔁 **Resilient Pool Connection** - Automatic reconnection with exponential backoff, plus proper
+  `mining.set_difficulty` handling so shares are reported against the pool's share target
+- 💾 **Persistent Configuration** - Settings changes are saved to disk and survive restarts
 - 🐳 **Dockerized** - One command to run the entire stack
+- ✅ **Tested & CI** - Go unit tests for the mining/stats/config logic, run on every push via GitHub Actions
 
 ## Tech Stack
 
@@ -59,6 +64,21 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Testing
+
+The backend ships with a unit-test suite covering the SHA-256d mining math (validated
+against the Bitcoin genesis block), target/difficulty conversion, the stats collector
+(including persistence round-trips) and the Stratum protocol parsing.
+
+```bash
+cd backend
+go test ./...            # run all tests
+go test -race ./...      # run with the race detector
+```
+
+CI (`.github/workflows/ci.yml`) runs `gofmt`, `go vet`, the race-enabled tests and a
+build for the backend, and builds the frontend (standard + demo) on every push and PR.
 
 ## Configuration
 
