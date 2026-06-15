@@ -18,8 +18,12 @@ type Manager struct {
 	extranonce1     string
 	extranonce2Size int
 
+	// Pool-assigned share difficulty (mining.set_difficulty)
+	shareDifficulty float64
+
 	// Callbacks
 	onShareFound func(workerID int, jobID, extranonce2, ntime, nonce string, difficulty float64)
+	onBlockFound func(workerID int, nonce string, difficulty float64)
 }
 
 // NewManager creates a new worker manager
@@ -38,12 +42,46 @@ func (m *Manager) SetShareCallback(cb func(workerID int, jobID, extranonce2, nti
 	m.onShareFound = cb
 }
 
-// SetStratumData sets the extranonce data from the Stratum connection
-func (m *Manager) SetStratumData(extranonce1 string, extranonce2Size int) {
+// SetBlockCallback sets the callback for found block candidates
+func (m *Manager) SetBlockCallback(cb func(workerID int, nonce string, difficulty float64)) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.onBlockFound = cb
+}
+
+// SetShareDifficulty sets the pool-assigned share difficulty for all workers
+func (m *Manager) SetShareDifficulty(difficulty float64) {
+	m.mu.Lock()
+	m.shareDifficulty = difficulty
+	workers := make([]*Worker, 0, len(m.workers))
+	for _, w := range m.workers {
+		workers = append(workers, w)
+	}
+	m.mu.Unlock()
+
+	for _, w := range workers {
+		w.SetShareDifficulty(difficulty)
+	}
+}
+
+// SetStratumData sets the extranonce data from the Stratum connection and
+// propagates it to any running workers (important after a reconnect, where the
+// pool issues a fresh extranonce1).
+func (m *Manager) SetStratumData(extranonce1 string, extranonce2Size int) {
+	m.mu.Lock()
 	m.extranonce1 = extranonce1
 	m.extranonce2Size = extranonce2Size
+	workers := make([]*Worker, 0, len(m.workers))
+	for _, w := range m.workers {
+		workers = append(workers, w)
+	}
+	m.mu.Unlock()
+
+	for _, w := range workers {
+		if w.IsRunning() {
+			w.UpdateExtranonce(extranonce1, extranonce2Size)
+		}
+	}
 }
 
 // SetCPUPercent sets the CPU throttling for all workers
@@ -73,6 +111,10 @@ func (m *Manager) AddWorker(name string) *Worker {
 
 	worker := NewWorker(id, name, m.cpuPercent)
 	worker.SetShareCallback(m.onShareFound)
+	worker.SetBlockCallback(m.onBlockFound)
+	if m.shareDifficulty > 0 {
+		worker.SetShareDifficulty(m.shareDifficulty)
+	}
 	m.workers[id] = worker
 
 	extranonce1 := m.extranonce1

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -65,6 +66,21 @@ func (s *Server) GetHandler() http.Handler {
 // GetWSHub returns the WebSocket hub
 func (s *Server) GetWSHub() *WSHub {
 	return s.wsHub
+}
+
+// BroadcastLog pushes a log line to all connected dashboards.
+func (s *Server) BroadcastLog(message, color string) {
+	s.wsHub.BroadcastEvent("log", map[string]interface{}{
+		"message": message,
+		"color":   color,
+	})
+}
+
+// BroadcastBlock notifies all connected dashboards of a block candidate.
+func (s *Server) BroadcastBlock(difficulty float64) {
+	s.wsHub.BroadcastEvent("block", map[string]interface{}{
+		"difficulty": difficulty,
+	})
 }
 
 // StartStatsLoop starts broadcasting stats periodically
@@ -307,6 +323,11 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		// Apply CPU percent change immediately
 		if _, ok := updates["max_cpu_percent"]; ok {
 			s.manager.SetCPUPercent(s.cfg.GetMaxCPUPercent())
+		}
+
+		// Persist the change so it survives a restart.
+		if err := s.cfg.Persist(); err != nil {
+			log.Printf("Failed to persist config: %v", err)
 		}
 
 		jsonResponse(w, map[string]string{"status": "updated"})

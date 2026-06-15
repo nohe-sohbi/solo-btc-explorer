@@ -10,6 +10,9 @@ import (
 type Config struct {
 	mu sync.RWMutex
 
+	// path is where the config was loaded from / should be persisted to.
+	path string
+
 	// Pool settings
 	PoolURL  string `json:"pool_url"`
 	PoolPort int    `json:"pool_port"`
@@ -36,6 +39,7 @@ func DefaultConfig() *Config {
 // Load reads configuration from a JSON file
 func Load(path string) (*Config, error) {
 	cfg := DefaultConfig()
+	cfg.path = path
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -50,6 +54,19 @@ func Load(path string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// Persist writes the configuration back to the path it was loaded from. It is a
+// no-op when no path is configured.
+func (c *Config) Persist() error {
+	c.mu.RLock()
+	path := c.path
+	c.mu.RUnlock()
+
+	if path == "" {
+		return nil
+	}
+	return c.Save(path)
 }
 
 // Save writes configuration to a JSON file

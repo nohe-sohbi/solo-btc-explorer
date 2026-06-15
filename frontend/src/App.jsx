@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocket, useAPI } from './hooks/useWebSocket';
 import { translations } from './translations';
 import DemoBanner from './components/DemoBanner';
+import HashrateChart from './components/HashrateChart';
+
+// Number of hashrate samples to retain (~1 sample/second from the stats stream).
+const HASHRATE_HISTORY_SIZE = 60;
 
 // =============================================================================
 // HOOK: useTranslation
@@ -474,6 +478,7 @@ function App() {
     const [workers, setWorkers] = useState([]);
     const [logs, setLogs] = useState([]);
     const [toast, setToast] = useState(null);
+    const [hashrateHistory, setHashrateHistory] = useState([]);
     const lastJobRef = useRef(null);
 
     // Theme effect
@@ -524,6 +529,16 @@ function App() {
             setWorkers(sorted);
         }
         if (stats?.connected !== undefined) setIsMining(stats.connected);
+
+        // Sample the hashrate into a rolling history for the chart.
+        if (stats && typeof stats.hashrate === 'number') {
+            setHashrateHistory(prev => {
+                const next = [...prev, stats.hashrate];
+                return next.length > HASHRATE_HISTORY_SIZE
+                    ? next.slice(next.length - HASHRATE_HISTORY_SIZE)
+                    : next;
+            });
+        }
     }, [stats]);
 
     // Add log entry
@@ -779,6 +794,11 @@ function App() {
                                 tooltip={t('difficultyTooltip')}
                             />
                         </div>
+                    </section>
+
+                    {/* Hashrate Chart */}
+                    <section className="section">
+                        <HashrateChart data={hashrateHistory} formatHashrate={formatHashrate} t={t} />
                     </section>
 
                     {/* Workers Section */}
