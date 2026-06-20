@@ -10,12 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins for development
-	},
-}
-
 // WSClient represents a connected WebSocket client
 type WSClient struct {
 	conn *websocket.Conn
@@ -27,13 +21,25 @@ type WSHub struct {
 	mu         sync.RWMutex
 	clients    map[*WSClient]bool
 	logHistory []map[string]interface{}
+	upgrader   websocket.Upgrader
 }
 
-// NewWSHub creates a new WebSocket hub
-func NewWSHub() *WSHub {
+// NewWSHub creates a new WebSocket hub. The origin checker gates the WebSocket
+// handshake so a hosted dashboard isn't drivable from arbitrary websites.
+func NewWSHub(origins *OriginChecker) *WSHub {
 	return &WSHub{
 		clients:    make(map[*WSClient]bool),
 		logHistory: make([]map[string]interface{}, 0),
+		upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				origin := r.Header.Get("Origin")
+				// Non-browser clients (curl, native miners) send no Origin; allow them.
+				if origin == "" {
+					return true
+				}
+				return origins.Allowed(origin)
+			},
+		},
 	}
 }
 
@@ -112,7 +118,7 @@ func (h *WSHub) ClientCount() int {
 
 // HandleWebSocket handles WebSocket upgrade requests
 func (h *WSHub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
 		return

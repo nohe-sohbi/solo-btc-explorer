@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +18,19 @@ import (
 	"github.com/soloforge/backend/internal/stats"
 	"github.com/soloforge/backend/internal/stratum"
 )
+
+// parseAllowedOrigins reads a comma-separated list of CORS/WebSocket origins
+// from the ALLOWED_ORIGINS environment variable. An empty value keeps the
+// permissive default (all origins allowed).
+func parseAllowedOrigins(raw string) []string {
+	var origins []string
+	for _, o := range strings.Split(raw, ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			origins = append(origins, o)
+		}
+	}
+	return origins
+}
 
 func main() {
 	port := flag.Int("port", 8080, "HTTP server port")
@@ -34,7 +49,8 @@ func main() {
 	statsCollector := stats.NewCollector(1000)
 
 	// Create the HTTP server up front so callbacks can stream events to dashboards.
-	server := api.NewServer(cfg, stratumClient, manager, statsCollector)
+	allowedOrigins := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"))
+	server := api.NewServer(cfg, stratumClient, manager, statsCollector, allowedOrigins)
 
 	// Wire up callbacks: when a share is found, submit it via stratum
 	manager.SetShareCallback(func(workerID int, jobID, extranonce2, ntime, nonce string, difficulty float64) {
@@ -139,7 +155,14 @@ func main() {
 		server.Stop()
 		manager.StopAll()
 		stratumClient.Close()
-		httpServer.Close()
+
+		// Drain in-flight requests instead of cutting connections abruptly.
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := httpServer.Shutdown(ctx); err != nil {
+			log.Printf("Graceful shutdown failed, forcing close: %v", err)
+			httpServer.Close()
+		}
 	}()
 
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {

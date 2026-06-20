@@ -15,5 +15,11 @@ export default defineConfig({
                 ws: true
             }
         }
+    },
+    test: {
+        // Pure-logic suites default to the fast node env; component tests opt into
+        // jsdom per file via a `// @vitest-environment jsdom` header comment.
+        environment: 'node',
+        include: ['src/**/*.{test,spec}.{js,jsx}'],
     }
 })

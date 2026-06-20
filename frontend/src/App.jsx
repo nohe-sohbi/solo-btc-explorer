@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocket, useAPI } from './hooks/useWebSocket';
 import { translations } from './translations';
+import { formatHashrate, formatNumber, formatUptime } from './lib/format';
+import { validateBitcoinAddress } from './lib/btcaddr';
 import DemoBanner from './components/DemoBanner';
 import HashrateChart from './components/HashrateChart';
 import OddsPanel from './components/OddsPanel';
@@ -190,13 +192,6 @@ function LiveLog({ logs, t }) {
 // COMPONENT: WorkerCard
 // =============================================================================
 function WorkerCard({ worker, onRemove, t }) {
-    const formatHashrate = (hash) => {
-        if (hash >= 1e9) return `${(hash / 1e9).toFixed(2)} GH/s`;
-        if (hash >= 1e6) return `${(hash / 1e6).toFixed(2)} MH/s`;
-        if (hash >= 1e3) return `${(hash / 1e3).toFixed(2)} KH/s`;
-        return `${hash.toFixed(2)} H/s`;
-    };
-
     return (
         <div className="worker-card">
             <div className="worker-card__info">
@@ -237,7 +232,16 @@ function SettingsPanel({ config, onSave, isMining, t, showToast }) {
         setLocalConfig(prev => ({ ...prev, [key]: value }));
     };
 
+    // Live wallet check so a typo is caught before saving (the backend
+    // re-validates on PUT). An empty field is "neutral" — it just can't mine yet.
+    const wallet = (localConfig.wallet_address || '').trim();
+    const walletCheck = wallet ? validateBitcoinAddress(wallet) : null;
+
     const handleSave = async () => {
+        if (walletCheck && !walletCheck.valid) {
+            showToast(t('walletInvalid'), 'error');
+            return;
+        }
         setIsSaving(true);
         await onSave(localConfig);
         setIsSaving(false);
@@ -257,7 +261,23 @@ function SettingsPanel({ config, onSave, isMining, t, showToast }) {
                         value={localConfig.wallet_address || ''}
                         onChange={(e) => handleChange('wallet_address', e.target.value)}
                         disabled={isMining}
+                        style={walletCheck && !walletCheck.valid
+                            ? { borderColor: 'var(--error)' }
+                            : walletCheck && walletCheck.valid
+                                ? { borderColor: 'var(--success)' }
+                                : undefined}
                     />
+                    {walletCheck && (
+                        <div style={{
+                            fontSize: 'var(--text-xs)',
+                            marginTop: 'var(--space-1)',
+                            color: walletCheck.valid ? 'var(--success)' : 'var(--error)'
+                        }}>
+                            {walletCheck.valid
+                                ? `✓ ${t('walletValid')}`
+                                : `✕ ${t('walletInvalid')} — ${walletCheck.error}`}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -336,7 +356,7 @@ function SettingsPanel({ config, onSave, isMining, t, showToast }) {
                 <button
                     className="btn btn--primary"
                     onClick={handleSave}
-                    disabled={isSaving}
+                    disabled={isSaving || (walletCheck && !walletCheck.valid)}
                     style={{ minWidth: '150px' }}
                 >
                     {isSaving ? '⏳' : '💾'} {t('saveSettings')}
@@ -572,34 +592,6 @@ function App() {
         }
     }, [lastMessage, t, addLog]);
 
-    // Format functions
-    const formatHashrate = (hash) => {
-        if (!hash) return '0 H/s';
-        if (hash >= 1e9) return `${(hash / 1e9).toFixed(2)} GH/s`;
-        if (hash >= 1e6) return `${(hash / 1e6).toFixed(2)} MH/s`;
-        if (hash >= 1e3) return `${(hash / 1e3).toFixed(2)} KH/s`;
-        return `${hash.toFixed(2)} H/s`;
-    };
-
-    const formatNumber = (num) => {
-        if (!num) return '0';
-        if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
-        if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
-        if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-        if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-        return num.toLocaleString();
-    };
-
-    const formatUptime = (seconds) => {
-        if (!seconds) return '0s';
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = Math.floor(seconds % 60);
-        if (h > 0) return `${h}h ${m}m`;
-        if (m > 0) return `${m}m ${s}s`;
-        return `${s}s`;
-    };
-
     // Periodic log entries with more variety
     useEffect(() => {
         if (!isMining || !stats) return;
@@ -652,6 +644,11 @@ function App() {
     const handleStartMining = async () => {
         if (!config.wallet_address) {
             alert(t('enterWalletFirst'));
+            return;
+        }
+        const walletCheck = validateBitcoinAddress(config.wallet_address.trim());
+        if (!walletCheck.valid) {
+            showToast(`${t('walletInvalid')} — ${walletCheck.error}`, 'error');
             return;
         }
         try {
