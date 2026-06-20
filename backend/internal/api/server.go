@@ -46,6 +46,7 @@ func (s *Server) setupRoutes() {
 	// API routes
 	s.mux.HandleFunc("/api/status", s.handleStatus)
 	s.mux.HandleFunc("/api/stats", s.handleStats)
+	s.mux.HandleFunc("/api/stats/reset", s.handleStatsReset)
 	s.mux.HandleFunc("/api/history", s.handleHistory)
 	s.mux.HandleFunc("/api/sessions", s.handleSessions)
 	s.mux.HandleFunc("/api/workers", s.handleWorkers)
@@ -53,6 +54,9 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/config", s.handleConfig)
 	s.mux.HandleFunc("/api/mining/start", s.handleMiningStart)
 	s.mux.HandleFunc("/api/mining/stop", s.handleMiningStop)
+
+	// Prometheus-compatible metrics for external monitoring.
+	s.mux.HandleFunc("/metrics", s.handleMetrics)
 
 	// WebSocket
 	s.mux.HandleFunc("/ws", s.wsHub.HandleWebSocket)
@@ -174,6 +178,24 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse(w, s.buildStatsPayload())
+}
+
+// handleStatsReset clears all accumulated statistics and history. This lets the
+// dashboard offer a "start fresh" action without restarting the container.
+func (s *Server) handleStatsReset(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	s.stats.Reset()
+
+	// Persist immediately so the cleared state survives a restart.
+	if err := s.stats.Save(); err != nil {
+		log.Printf("Failed to persist stats after reset: %v", err)
+	}
+
+	jsonResponse(w, map[string]string{"status": "reset"})
 }
 
 // handleHistory returns share/block history
@@ -315,6 +337,13 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		var updates map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
 			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		// Reject invalid values before mutating/persisting anything.
+		if err := config.ValidateUpdates(updates); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			jsonResponse(w, map[string]string{"status": "error", "error": err.Error()})
 			return
 		}
 

@@ -213,10 +213,30 @@ class DemoEngine {
             accepted_shares: this.acceptedShares,
             best_difficulty: this.bestDifficulty,
             uptime_seconds: uptime,
+            // Surfaced so the odds estimator can use the live network difficulty.
+            network_difficulty: this.block ? this.block.networkDifficulty : 0,
             workers,
             connected: this.running,
             authorized: this.running,
         };
+    }
+
+    // Clear all accumulated counters and history (mirrors POST /api/stats/reset).
+    resetStats() {
+        this.totalShares = 0;
+        this.acceptedShares = 0;
+        this.bestDifficulty = 0;
+        this.shareHistory = [];
+        this.blockHistory = [];
+        this.sessionHistory = [];
+        this.previousSeconds = 0;
+        for (const rec of this.workers.values()) {
+            rec.hashCount = 0;
+            rec.startTime = rec.running ? Date.now() : 0;
+        }
+        if (this.running) this.startTime = Date.now();
+        this._emit('stats', this.buildStatsPayload());
+        return { status: 'reset' };
     }
 
     getHistory(limit) {

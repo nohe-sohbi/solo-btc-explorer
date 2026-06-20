@@ -23,12 +23,19 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
 - 🎰 **Solo Mining** - Connect to solo mining pools and try your luck at winning a full block reward
 - 📊 **Real-time Dashboard** - Live hashrate, shares, difficulty, and worker statistics via WebSocket
 - 📈 **Hashrate History Chart** - Live SVG sparkline of recent hashrate with current / peak / average
+- 🎲 **Mining Odds Estimator** - Live "what are my real chances?" panel: expected time to a block and
+  per-day / per-year probability derived from your hashrate vs. network difficulty
+- 📟 **Prometheus Metrics** - `/metrics` endpoint exposes hashrate, shares, uptime and pool status for
+  scraping by Prometheus / Grafana
 - ⛏️ **Multi-Worker Support** - Run multiple mining workers simultaneously
 - 🎚️ **CPU Throttling** - Control how much CPU power to dedicate to mining
 - 🔧 **Configurable Pools** - Default to `solo.ckpool.org` or set your own
 - 🔁 **Resilient Pool Connection** - Automatic reconnection with exponential backoff, plus proper
   `mining.set_difficulty` handling so shares are reported against the pool's share target
-- 💾 **Persistent Configuration** - Settings changes are saved to disk and survive restarts
+- 💾 **Persistent Configuration** - Settings changes are saved to disk and survive restarts. Updates are
+  validated server-side (port range, CPU %, worker count) so bad input is rejected with a clear error
+- 🧹 **Durable Stats** - Statistics auto-save every 30s (so a crash or `docker kill` no longer wipes your
+  history) and can be cleared from the dashboard via a Reset button
 - 🐳 **Dockerized** - One command to run the entire stack
 - ✅ **Tested & CI** - Go unit tests for the mining/stats/config logic, run on every push via GitHub Actions
 
@@ -95,7 +102,9 @@ build for the backend, and builds the frontend (standard + demo) on every push a
 |--------|----------|-------------|
 | GET | `/api/status` | Miner status |
 | GET | `/api/stats` | Mining statistics |
+| POST | `/api/stats/reset` | Clear all statistics and history |
 | GET | `/api/history` | Share history |
+| GET | `/metrics` | Prometheus-format metrics |
 | GET/POST | `/api/workers` | Worker management |
 | GET/PUT | `/api/config` | Configuration |
 | POST | `/api/mining/start` | Start mining |

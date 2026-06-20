@@ -118,6 +118,7 @@ async function demoRequest(endpoint, options) {
         return method === 'PUT' ? demoEngine.putConfig(body) : demoEngine.getConfig();
     }
     if (path === '/status') return demoEngine.getStatus();
+    if (path === '/stats/reset') return demoEngine.resetStats();
     if (path === '/stats') return demoEngine.buildStatsPayload();
     if (path === '/history') return demoEngine.getHistory(parseLimit(endpoint, 100));
     if (path === '/sessions') return demoEngine.getSessions(parseLimit(endpoint, 50));

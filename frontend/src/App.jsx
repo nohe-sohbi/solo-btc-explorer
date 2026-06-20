@@ -3,6 +3,7 @@ import { useWebSocket, useAPI } from './hooks/useWebSocket';
 import { translations } from './translations';
 import DemoBanner from './components/DemoBanner';
 import HashrateChart from './components/HashrateChart';
+import OddsPanel from './components/OddsPanel';
 
 // Number of hashrate samples to retain (~1 sample/second from the stats stream).
 const HASHRATE_HISTORY_SIZE = 60;
@@ -698,8 +699,27 @@ function App() {
         }
     };
 
+    const handleResetStats = async () => {
+        if (!window.confirm(t('resetStatsConfirm'))) return;
+        try {
+            await api.post('/stats/reset', {});
+            window.umami?.track('reset_stats');
+            setHistory({ shares: [], blocks: [] });
+            setSessions([]);
+            setHashrateHistory([]);
+            addLog(t('logStatsReset'), 'var(--warning)');
+            showToast(t('logStatsReset'), 'success');
+        } catch (err) {
+            addLog(t('logStatsResetFailed'), 'var(--error)');
+            showToast(t('logStatsResetFailed'), 'error');
+        }
+    };
+
     const bestDiff = stats?.best_difficulty || 0;
-    const networkDifficulty = 75e12;
+    // Prefer the live network difficulty (provided in demo mode) and fall back to a
+    // recent mainnet figure when the backend doesn't report it.
+    const FALLBACK_NETWORK_DIFFICULTY = 1.21e14;
+    const networkDifficulty = stats?.network_difficulty > 0 ? stats.network_difficulty : FALLBACK_NETWORK_DIFFICULTY;
     const diffProgress = bestDiff > 0 ? Math.log10(bestDiff + 1) / Math.log10(networkDifficulty) * 100 : 0;
 
     // Helper to get theme-specific asset
@@ -796,9 +816,12 @@ function App() {
                         </div>
                     </section>
 
-                    {/* Hashrate Chart */}
+                    {/* Hashrate Chart + Odds estimator */}
                     <section className="section">
-                        <HashrateChart data={hashrateHistory} formatHashrate={formatHashrate} t={t} />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
+                            <HashrateChart data={hashrateHistory} formatHashrate={formatHashrate} t={t} />
+                            <OddsPanel hashrate={stats?.hashrate || 0} networkDifficulty={networkDifficulty} t={t} />
+                        </div>
                     </section>
 
                     {/* Workers Section */}
@@ -868,6 +891,13 @@ function App() {
                                 <span className="text-muted">{t('cpuLimit')}:</span>
                                 <span className="font-mono">{config.max_cpu_percent}%</span>
                             </div>
+                            <button
+                                className="btn btn--secondary btn--sm"
+                                onClick={handleResetStats}
+                                title={t('resetStats')}
+                            >
+                                🧹 {t('resetStats')}
+                            </button>
                         </div>
                     </section>
                 </div>
