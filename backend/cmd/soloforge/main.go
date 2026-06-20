@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/soloforge/backend/internal/api"
 	"github.com/soloforge/backend/internal/config"
@@ -91,6 +92,25 @@ func main() {
 	// Start broadcasting stats to dashboards.
 	server.StartStatsLoop()
 
+	// Periodically flush stats to disk. Without this, a crash, OOM kill or
+	// `docker kill` (anything that skips the graceful-shutdown path below) would
+	// lose every hash and share accumulated since the last clean stop.
+	autoSaveStop := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-autoSaveStop:
+				return
+			case <-ticker.C:
+				if err := statsCollector.Save(); err != nil {
+					log.Printf("Auto-save failed: %v", err)
+				}
+			}
+		}
+	}()
+
 	addr := fmt.Sprintf(":%d", *port)
 	log.Printf("Starting SoloForge server on %s", addr)
 
@@ -106,6 +126,9 @@ func main() {
 	go func() {
 		<-sigCh
 		log.Println("Shutting down...")
+
+		// Stop the periodic auto-save before the final flush.
+		close(autoSaveStop)
 
 		// Save stats before exit
 		statsCollector.EndSession()

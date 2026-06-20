@@ -83,3 +83,54 @@ func TestPersistNoPathIsNoop(t *testing.T) {
 		t.Fatalf("Persist without a path should be a no-op, got %v", err)
 	}
 }
+
+func TestValidateUpdatesAcceptsValidInput(t *testing.T) {
+	err := ValidateUpdates(map[string]interface{}{
+		"pool_url":        "solo.ckpool.org",
+		"pool_port":       float64(3333),
+		"wallet_address":  "1FngDUBvDhPh9z3paCRHFEtHjnUMAFacn9",
+		"max_cpu_percent": float64(80),
+		"num_workers":     float64(4),
+	})
+	if err != nil {
+		t.Fatalf("valid config rejected: %v", err)
+	}
+}
+
+func TestValidateUpdatesEmptyPatchIsValid(t *testing.T) {
+	if err := ValidateUpdates(map[string]interface{}{}); err != nil {
+		t.Fatalf("empty patch should be valid, got %v", err)
+	}
+}
+
+func TestValidateUpdatesAllowsClearingWallet(t *testing.T) {
+	if err := ValidateUpdates(map[string]interface{}{"wallet_address": ""}); err != nil {
+		t.Fatalf("clearing wallet should be allowed, got %v", err)
+	}
+}
+
+func TestValidateUpdatesRejectsBadValues(t *testing.T) {
+	cases := []struct {
+		name    string
+		updates map[string]interface{}
+	}{
+		{"empty pool url", map[string]interface{}{"pool_url": "   "}},
+		{"pool url wrong type", map[string]interface{}{"pool_url": float64(1)}},
+		{"port too low", map[string]interface{}{"pool_port": float64(0)}},
+		{"port too high", map[string]interface{}{"pool_port": float64(70000)}},
+		{"port wrong type", map[string]interface{}{"pool_port": "3333"}},
+		{"short wallet", map[string]interface{}{"wallet_address": "abc"}},
+		{"cpu too low", map[string]interface{}{"max_cpu_percent": float64(5)}},
+		{"cpu too high", map[string]interface{}{"max_cpu_percent": float64(150)}},
+		{"workers zero", map[string]interface{}{"num_workers": float64(0)}},
+		{"workers too high", map[string]interface{}{"num_workers": float64(1000)}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := ValidateUpdates(tc.updates); err == nil {
+				t.Fatalf("expected validation error for %s, got nil", tc.name)
+			}
+		})
+	}
+}

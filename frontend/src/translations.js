@@ -60,9 +60,26 @@ export const translations = {
         chartPeak: 'Peak',
         chartAverage: 'Average',
 
+        // Odds / probability panel
+        oddsTitle: '🎲 Your Odds',
+        oddsSubtitle: 'Based on current hashrate',
+        oddsWaiting: 'Start mining to estimate your chances of solving a block.',
+        oddsExpectedTime: 'Expected time to a block',
+        oddsPerDay: 'Chance per day',
+        oddsPerYear: 'Chance per year',
+        oddsDays: 'days',
+        oddsYears: 'years',
+        oddsIn: 'in',
+        oddsCertain: 'almost certain',
+        oddsExplanation: 'A block needs ~difficulty × 2³² hashes on average. Solo CPU mining is a lottery — these numbers show just how astronomical the odds are. That is the whole point.',
+
         // Live Log
         liveActivity: '📡 Live Activity',
         startMiningToSee: 'Start mining to see live activity...',
+        resetStats: 'Reset Stats',
+        resetStatsConfirm: 'Reset all statistics and history? This cannot be undone.',
+        logStatsReset: '🧹 Statistics reset',
+        logStatsResetFailed: '❌ Failed to reset statistics',
 
         // History
         historyTitle: '📜 Share History',
@@ -168,9 +185,26 @@ export const translations = {
         chartPeak: 'Pic',
         chartAverage: 'Moyenne',
 
+        // Odds / probability panel
+        oddsTitle: '🎲 Vos Chances',
+        oddsSubtitle: 'Selon le hashrate actuel',
+        oddsWaiting: 'Démarrez le mining pour estimer vos chances de trouver un bloc.',
+        oddsExpectedTime: 'Temps moyen pour un bloc',
+        oddsPerDay: 'Chance par jour',
+        oddsPerYear: 'Chance par an',
+        oddsDays: 'jours',
+        oddsYears: 'ans',
+        oddsIn: 'sur',
+        oddsCertain: 'quasi certain',
+        oddsExplanation: 'Un bloc nécessite en moyenne ~difficulté × 2³² hashes. Le solo mining CPU est une loterie — ces chiffres montrent à quel point les chances sont infimes. C\'est tout l\'intérêt.',
+
         // Live Log
         liveActivity: '📡 Activité en Direct',
         startMiningToSee: 'Démarrez le mining pour voir l\'activité...',
+        resetStats: 'Réinitialiser',
+        resetStatsConfirm: 'Réinitialiser toutes les statistiques et l\'historique ? Action irréversible.',
+        logStatsReset: '🧹 Statistiques réinitialisées',
+        logStatsResetFailed: '❌ Échec de la réinitialisation',
 
         // History
         historyTitle: '📜 Historique des Shares',
