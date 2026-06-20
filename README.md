@@ -34,10 +34,19 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
   `mining.set_difficulty` handling so shares are reported against the pool's share target
 - 💾 **Persistent Configuration** - Settings changes are saved to disk and survive restarts. Updates are
   validated server-side (port range, CPU %, worker count) so bad input is rejected with a clear error
+- 🔐 **Real Address Validation** - Wallet addresses are fully verified (Base58Check for `1`/`3`, Bech32 /
+  Bech32m for `bc1`) on both the dashboard and the backend, so a mistyped payout address can't silently
+  send a found block reward into the void. Live feedback flags typos before you ever start mining
 - 🧹 **Durable Stats** - Statistics auto-save every 30s (so a crash or `docker kill` no longer wipes your
   history) and can be cleared from the dashboard via a Reset button
+- 🩺 **Health & Readiness Probes** - `/healthz` (liveness) and `/readyz` (pool connected + authorized) plus
+  graceful HTTP shutdown that drains in-flight requests on `SIGTERM`
+- 🛡️ **Configurable Origins** - `ALLOWED_ORIGINS` locks down CORS *and* the WebSocket handshake to an
+  explicit allowlist for hosted deployments (defaults to permissive for local dev)
 - 🐳 **Dockerized** - One command to run the entire stack
-- ✅ **Tested & CI** - Go unit tests for the mining/stats/config logic, run on every push via GitHub Actions
+- ✅ **Tested & CI** - Go unit tests for the mining/stats/config/address logic **and** a frontend Vitest
+  suite (formatters, odds math, address + SHA-256 validation, component render) with ESLint, all run on
+  every push via GitHub Actions
 
 ## Tech Stack
 
@@ -75,8 +84,9 @@ npm run dev
 ## Testing
 
 The backend ships with a unit-test suite covering the SHA-256d mining math (validated
-against the Bitcoin genesis block), target/difficulty conversion, the stats collector
-(including persistence round-trips) and the Stratum protocol parsing.
+against the Bitcoin genesis block), target/difficulty conversion, Bitcoin address
+validation (P2PKH / P2SH / Bech32 / Bech32m), the stats collector (including persistence
+round-trips), the Stratum protocol parsing and the HTTP layer (health probes + CORS).
 
 ```bash
 cd backend
@@ -84,8 +94,19 @@ go test ./...            # run all tests
 go test -race ./...      # run with the race detector
 ```
 
+The frontend has its own Vitest suite (display formatters, mining-odds math, SHA-256
+vectors, address validation kept in sync with the Go vectors, and an `OddsPanel` render
+test) plus ESLint:
+
+```bash
+cd frontend
+npm test                 # run the Vitest suite
+npm run lint             # run ESLint
+```
+
 CI (`.github/workflows/ci.yml`) runs `gofmt`, `go vet`, the race-enabled tests and a
-build for the backend, and builds the frontend (standard + demo) on every push and PR.
+build for the backend, and lints, tests and builds the frontend (standard + demo) on
+every push and PR.
 
 ## Configuration
 
@@ -96,6 +117,14 @@ build for the backend, and builds the frontend (standard + demo) on every push a
 | CPU % | Maximum CPU usage | `80%` |
 | Workers | Number of mining threads | `1` |
 
+### Environment variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `POOL_URL` | Mining pool address | `solo.ckpool.org` |
+| `POOL_PORT` | Mining pool port | `3333` |
+| `ALLOWED_ORIGINS` | Comma-separated CORS/WebSocket origin allowlist (e.g. `https://miner.example.com`). Empty = allow all | _(empty)_ |
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
@@ -105,6 +134,8 @@ build for the backend, and builds the frontend (standard + demo) on every push a
 | POST | `/api/stats/reset` | Clear all statistics and history |
 | GET | `/api/history` | Share history |
 | GET | `/metrics` | Prometheus-format metrics |
+| GET | `/healthz` | Liveness probe (always 200 while serving) |
+| GET | `/readyz` | Readiness probe (200 when pool connected + authorized, else 503) |
 | GET/POST | `/api/workers` | Worker management |
 | GET/PUT | `/api/config` | Configuration |
 | POST | `/api/mining/start` | Start mining |

@@ -6,12 +6,16 @@ services:
     environment:
       - POOL_URL=solo.ckpool.org
       - POOL_PORT=3333
+      # Lock CORS + the WebSocket handshake to specific origins in production,
+      # e.g. ALLOWED_ORIGINS=https://solo-btc.example.com. Unset = allow all.
+      # - ALLOWED_ORIGINS=
     volumes:
       - ./data:/app/data
     networks:
       - soloforge-network
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/api/status" ]
+      # Liveness probe: /healthz stays 200 even while the pool is reconnecting.
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/healthz" ]
       interval: 30s
       timeout: 10s
       retries: 3

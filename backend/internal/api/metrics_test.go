@@ -18,7 +18,7 @@ func newTestServer(t *testing.T) *Server {
 	st := stratum.NewClient(cfg.PoolURL, cfg.PoolPort)
 	mgr := miner.NewManager()
 	col := stats.NewCollector(100)
-	return NewServer(cfg, st, mgr, col)
+	return NewServer(cfg, st, mgr, col, nil)
 }
 
 func TestRenderMetricsFormat(t *testing.T) {

@@ -21,19 +21,24 @@ type Server struct {
 	stats    *stats.Collector
 	wsHub    *WSHub
 	mux      *http.ServeMux
+	origins  *OriginChecker
 	running  bool
 	shutdown chan struct{}
 }
 
-// NewServer creates a new API server
-func NewServer(cfg *config.Config, stratumClient *stratum.Client, manager *miner.Manager, statsCollector *stats.Collector) *Server {
+// NewServer creates a new API server. allowedOrigins locks down CORS and the
+// WebSocket handshake; a nil/empty list (or one containing "*") allows all
+// origins, preserving the original behaviour.
+func NewServer(cfg *config.Config, stratumClient *stratum.Client, manager *miner.Manager, statsCollector *stats.Collector, allowedOrigins []string) *Server {
+	origins := NewOriginChecker(allowedOrigins)
 	s := &Server{
 		cfg:      cfg,
 		stratum:  stratumClient,
 		manager:  manager,
 		stats:    statsCollector,
-		wsHub:    NewWSHub(),
+		wsHub:    NewWSHub(origins),
 		mux:      http.NewServeMux(),
+		origins:  origins,
 		shutdown: make(chan struct{}),
 	}
 
@@ -58,13 +63,17 @@ func (s *Server) setupRoutes() {
 	// Prometheus-compatible metrics for external monitoring.
 	s.mux.HandleFunc("/metrics", s.handleMetrics)
 
+	// Liveness/readiness probes for container orchestration.
+	s.mux.HandleFunc("/healthz", s.handleHealthz)
+	s.mux.HandleFunc("/readyz", s.handleReadyz)
+
 	// WebSocket
 	s.mux.HandleFunc("/ws", s.wsHub.HandleWebSocket)
 }
 
 // GetHandler returns the HTTP handler with CORS
 func (s *Server) GetHandler() http.Handler {
-	return corsMiddleware(s.mux)
+	return s.corsMiddleware(s.mux)
 }
 
 // GetWSHub returns the WebSocket hub
@@ -168,6 +177,41 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse(w, status)
+}
+
+// handleHealthz is a liveness probe: it returns 200 as long as the process can
+// serve HTTP. It deliberately reports nothing about the pool so a transient
+// pool outage never makes the container look dead and get restart-looped.
+func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	jsonResponse(w, map[string]string{"status": "ok"})
+}
+
+// handleReadyz is a readiness probe: it returns 200 only when the miner is
+// connected to and authorized with the pool, and 503 otherwise. Orchestrators
+// can use it to gauge whether mining is actually live.
+func (s *Server) handleReadyz(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	connected := s.stratum.IsConnected()
+	authorized := s.stratum.IsAuthorized()
+	ready := connected && authorized
+
+	w.Header().Set("Content-Type", "application/json")
+	if !ready {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ready":           ready,
+		"pool_connected":  connected,
+		"pool_authorized": authorized,
+	})
 }
 
 // handleStats returns mining statistics
@@ -461,10 +505,19 @@ func jsonResponse(w http.ResponseWriter, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
-// corsMiddleware adds CORS headers
-func corsMiddleware(next http.Handler) http.Handler {
+// corsMiddleware adds CORS headers, honoring the configured origin allowlist.
+// When all origins are allowed (the default) it keeps emitting the permissive
+// "*". Otherwise it reflects only allowed origins and adds a Vary header so
+// caches don't leak one origin's response to another.
+func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		if s.origins.AllowAll() {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else if origin != "" && s.origins.Allowed(origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Add("Vary", "Origin")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 

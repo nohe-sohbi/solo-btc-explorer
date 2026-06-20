@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/soloforge/backend/internal/btcaddr"
 )
 
 // Validation bounds for user-supplied configuration.
@@ -160,9 +162,13 @@ func ValidateUpdates(updates map[string]interface{}) error {
 		if !ok {
 			return fmt.Errorf("wallet_address must be a string")
 		}
-		// Allow clearing the wallet, but reject obviously malformed values.
-		if trimmed := strings.TrimSpace(s); trimmed != "" && len(trimmed) < 14 {
-			return fmt.Errorf("wallet_address looks too short to be a valid Bitcoin address")
+		// Allow clearing the wallet, but otherwise verify the encoding and
+		// checksum so a mistyped address can't silently send a block reward into
+		// the void.
+		if trimmed := strings.TrimSpace(s); trimmed != "" {
+			if err := btcaddr.Validate(trimmed); err != nil {
+				return fmt.Errorf("wallet_address: %w", err)
+			}
 		}
 	}
 
