@@ -30,6 +30,13 @@ export const translations = {
         searching: 'Searching...',
         ofNetwork: '% of network',
 
+        // Live network context
+        networkTitle: '🌐 Bitcoin Network',
+        blockHeight: 'Block Height',
+        networkDifficulty: 'Difficulty',
+        networkHashrate: 'Network Hashrate',
+        btcPrice: 'BTC Price',
+
         // Workers
         workersTitle: '⛏️ Mining Workers',
         addWorker: '+ Add Worker',
@@ -96,6 +103,11 @@ export const translations = {
         duration: 'Duration',
         startTime: 'Start Time',
 
+        // Export
+        exportTitle: 'Export',
+        exportCSV: '⬇ CSV',
+        exportJSON: '⬇ JSON',
+
         // Footer
         pool: 'Pool',
         uptime: 'Uptime',
@@ -156,6 +168,13 @@ export const translations = {
         accepted: 'acceptées',
         searching: 'Recherche...',
         ofNetwork: '% du réseau',
+
+        // Live network context
+        networkTitle: '🌐 Réseau Bitcoin',
+        blockHeight: 'Hauteur de bloc',
+        networkDifficulty: 'Difficulté',
+        networkHashrate: 'Hashrate réseau',
+        btcPrice: 'Prix BTC',
 
         // Workers
         workersTitle: '⛏️ Workers de Mining',
@@ -222,6 +241,11 @@ export const translations = {
         sessions: 'Sessions',
         duration: 'Durée',
         startTime: 'Heure de début',
+
+        // Export
+        exportTitle: 'Exporter',
+        exportCSV: '⬇ CSV',
+        exportJSON: '⬇ JSON',
 
         // Footer
         pool: 'Pool',

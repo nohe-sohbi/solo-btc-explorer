@@ -15,6 +15,7 @@ import (
 	"github.com/soloforge/backend/internal/api"
 	"github.com/soloforge/backend/internal/config"
 	"github.com/soloforge/backend/internal/miner"
+	"github.com/soloforge/backend/internal/network"
 	"github.com/soloforge/backend/internal/stats"
 	"github.com/soloforge/backend/internal/stratum"
 )
@@ -51,6 +52,14 @@ func main() {
 	// Create the HTTP server up front so callbacks can stream events to dashboards.
 	allowedOrigins := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGINS"))
 	server := api.NewServer(cfg, stratumClient, manager, statsCollector, allowedOrigins)
+
+	// Poll live Bitcoin network context (difficulty, height, price) so the
+	// dashboard's odds estimator reflects reality, not a hard-coded fallback.
+	networkCtx, cancelNetwork := context.WithCancel(context.Background())
+	defer cancelNetwork()
+	networkFetcher := network.NewFetcher(os.Getenv("MEMPOOL_API_URL"))
+	networkFetcher.Start(networkCtx)
+	server.SetNetworkProvider(networkFetcher)
 
 	// Wire up callbacks: when a share is found, submit it via stratum
 	manager.SetShareCallback(func(workerID int, jobID, extranonce2, ntime, nonce string, difficulty float64) {

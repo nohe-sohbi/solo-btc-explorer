@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -107,6 +108,53 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	}
 	if len(c2.GetBlockHistory(0)) != 1 {
 		t.Fatalf("expected 1 block after reload")
+	}
+}
+
+func TestSaveIsAtomicAndLeavesNoTempFiles(t *testing.T) {
+	dir := t.TempDir()
+	c := NewCollector(100)
+	c.dataDir = dir
+	c.UpdateHashes(777)
+
+	if err := c.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	// Only the final stats.json should remain — no leftover *.tmp-* staging files.
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "stats.json" {
+		var names []string
+		for _, e := range entries {
+			names = append(names, e.Name())
+		}
+		t.Fatalf("expected only stats.json, got %v", names)
+	}
+
+	// Re-saving over an existing file must keep producing a valid, parseable file.
+	c.UpdateHashes(888)
+	if err := c.Save(); err != nil {
+		t.Fatalf("Save (overwrite): %v", err)
+	}
+	c2 := &Collector{maxHistorySize: 100, dataDir: dir, dataFile: "stats.json"}
+	if err := c2.Load(); err != nil {
+		t.Fatalf("Load after overwrite: %v", err)
+	}
+	if got := c2.GetStats()["total_hashes"].(uint64); got != 888 {
+		t.Fatalf("total_hashes after overwrite = %d, want 888", got)
+	}
+}
+
+func TestNewCollectorHonorsDataDirEnv(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("DATA_DIR", dir)
+
+	c := NewCollector(100)
+	if c.dataDir != dir {
+		t.Fatalf("dataDir = %q, want %q from DATA_DIR", c.dataDir, dir)
 	}
 }
 

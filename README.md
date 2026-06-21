@@ -25,8 +25,15 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
 - 📈 **Hashrate History Chart** - Live SVG sparkline of recent hashrate with current / peak / average
 - 🎲 **Mining Odds Estimator** - Live "what are my real chances?" panel: expected time to a block and
   per-day / per-year probability derived from your hashrate vs. network difficulty
-- 📟 **Prometheus Metrics** - `/metrics` endpoint exposes hashrate, shares, uptime and pool status for
-  scraping by Prometheus / Grafana
+- 🌐 **Live Network Context** - The backend polls [mempool.space](https://mempool.space) for the real
+  network difficulty, chain-tip height, total network hashrate and BTC/USD price. These feed the odds
+  estimator (so it runs against *real* difficulty, not a hard-coded fallback), a "Bitcoin Network" panel
+  on the dashboard, the `/api/network` endpoint, and `/metrics`. Polling is best-effort — a failed fetch
+  keeps the last known value, so a flaky upstream never blanks the UI or stalls mining
+- 📤 **Stats Export** - Download your share and session history as **CSV or JSON**, either from the
+  dashboard (one click per tab, works in the demo too) or via the `/api/export` endpoint for automation
+- 📟 **Prometheus Metrics** - `/metrics` endpoint exposes hashrate, shares, uptime, pool status **and live
+  network context** (difficulty, height, network hashrate, price) for scraping by Prometheus / Grafana
 - ⛏️ **Multi-Worker Support** - Run multiple mining workers simultaneously
 - 🎚️ **CPU Throttling** - Control how much CPU power to dedicate to mining
 - 🔧 **Configurable Pools** - Default to `solo.ckpool.org` or set your own
@@ -38,7 +45,9 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
   Bech32m for `bc1`) on both the dashboard and the backend, so a mistyped payout address can't silently
   send a found block reward into the void. Live feedback flags typos before you ever start mining
 - 🧹 **Durable Stats** - Statistics auto-save every 30s (so a crash or `docker kill` no longer wipes your
-  history) and can be cleared from the dashboard via a Reset button
+  history) and can be cleared from the dashboard via a Reset button. Saves are **atomic** (written to a
+  temp file then renamed) so an interrupted write can never corrupt `stats.json`, and the storage location
+  is configurable via the `DATA_DIR` environment variable
 - 🩺 **Health & Readiness Probes** - `/healthz` (liveness) and `/readyz` (pool connected + authorized) plus
   graceful HTTP shutdown that drains in-flight requests on `SIGTERM`
 - 🛡️ **Configurable Origins** - `ALLOWED_ORIGINS` locks down CORS *and* the WebSocket handshake to an
@@ -124,6 +133,8 @@ every push and PR.
 | `POOL_URL` | Mining pool address | `solo.ckpool.org` |
 | `POOL_PORT` | Mining pool port | `3333` |
 | `ALLOWED_ORIGINS` | Comma-separated CORS/WebSocket origin allowlist (e.g. `https://miner.example.com`). Empty = allow all | _(empty)_ |
+| `DATA_DIR` | Directory where `stats.json` is persisted | `/app/data` |
+| `MEMPOOL_API_URL` | Base URL for the network-context explorer API | `https://mempool.space` |
 
 ## API Endpoints
 
@@ -133,6 +144,8 @@ every push and PR.
 | GET | `/api/stats` | Mining statistics |
 | POST | `/api/stats/reset` | Clear all statistics and history |
 | GET | `/api/history` | Share history |
+| GET | `/api/network` | Live Bitcoin network context (difficulty, height, hashrate, price) |
+| GET | `/api/export` | Download history as CSV/JSON (`?dataset=shares\|sessions&format=csv\|json`) |
 | GET | `/metrics` | Prometheus-format metrics |
 | GET | `/healthz` | Liveness probe (always 200 while serving) |
 | GET | `/readyz` | Readiness probe (200 when pool connected + authorized, else 503) |

@@ -9,9 +9,16 @@ import (
 
 	"github.com/soloforge/backend/internal/config"
 	"github.com/soloforge/backend/internal/miner"
+	"github.com/soloforge/backend/internal/network"
 	"github.com/soloforge/backend/internal/stats"
 	"github.com/soloforge/backend/internal/stratum"
 )
+
+// networkProvider supplies the live Bitcoin network context. It is satisfied by
+// *network.Fetcher; the interface keeps the server testable with a nil/stub.
+type networkProvider interface {
+	Get() network.Stats
+}
 
 // Server represents the HTTP/WebSocket server
 type Server struct {
@@ -19,6 +26,7 @@ type Server struct {
 	stratum  *stratum.Client
 	manager  *miner.Manager
 	stats    *stats.Collector
+	network  networkProvider
 	wsHub    *WSHub
 	mux      *http.ServeMux
 	origins  *OriginChecker
@@ -60,6 +68,12 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/mining/start", s.handleMiningStart)
 	s.mux.HandleFunc("/api/mining/stop", s.handleMiningStop)
 
+	// Live Bitcoin network context (difficulty, height, price).
+	s.mux.HandleFunc("/api/network", s.handleNetwork)
+
+	// CSV/JSON export of accumulated history for spreadsheets / archival.
+	s.mux.HandleFunc("/api/export", s.handleExport)
+
 	// Prometheus-compatible metrics for external monitoring.
 	s.mux.HandleFunc("/metrics", s.handleMetrics)
 
@@ -79,6 +93,13 @@ func (s *Server) GetHandler() http.Handler {
 // GetWSHub returns the WebSocket hub
 func (s *Server) GetWSHub() *WSHub {
 	return s.wsHub
+}
+
+// SetNetworkProvider attaches a live network-stats source (mempool.space poller)
+// so the stats stream, /api/network and /metrics can report real difficulty,
+// block height, network hashrate and BTC price.
+func (s *Server) SetNetworkProvider(p networkProvider) {
+	s.network = p
 }
 
 // BroadcastLog pushes a log line to all connected dashboards.
@@ -147,7 +168,7 @@ func (s *Server) buildStatsPayload() map[string]interface{} {
 		})
 	}
 
-	return map[string]interface{}{
+	payload := map[string]interface{}{
 		"hashrate":        s.manager.GetTotalHashrate(),
 		"total_hashes":    basicStats["total_hashes"],
 		"total_shares":    basicStats["total_shares"],
@@ -158,6 +179,41 @@ func (s *Server) buildStatsPayload() map[string]interface{} {
 		"connected":       s.stratum.IsConnected(),
 		"authorized":      s.stratum.IsAuthorized(),
 	}
+
+	// Fold in live network context when available so the dashboard's odds
+	// estimator runs against the real difficulty instead of a stale fallback.
+	if s.network != nil {
+		ns := s.network.Get()
+		if ns.Difficulty > 0 {
+			payload["network_difficulty"] = ns.Difficulty
+		}
+		if ns.NetworkHashrate > 0 {
+			payload["network_hashrate"] = ns.NetworkHashrate
+		}
+		if ns.BlockHeight > 0 {
+			payload["block_height"] = ns.BlockHeight
+		}
+		if ns.PriceUSD > 0 {
+			payload["btc_price_usd"] = ns.PriceUSD
+		}
+	}
+
+	return payload
+}
+
+// handleNetwork returns the latest live Bitcoin network context. It always
+// responds 200 with the cached snapshot (zero values until the first poll lands
+// or when no provider is wired in).
+func (s *Server) handleNetwork(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.network == nil {
+		jsonResponse(w, network.Stats{})
+		return
+	}
+	jsonResponse(w, s.network.Get())
 }
 
 // handleStatus returns the miner status

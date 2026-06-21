@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -87,13 +88,21 @@ func NewCollector(maxHistorySize int) *Collector {
 		maxHistorySize = 1000
 	}
 
+	// The data directory defaults to the container path but can be overridden
+	// with DATA_DIR so the same binary works for local dev, bind mounts and
+	// alternative volume layouts without code changes.
+	dataDir := "/app/data"
+	if d := strings.TrimSpace(os.Getenv("DATA_DIR")); d != "" {
+		dataDir = d
+	}
+
 	c := &Collector{
 		maxHistorySize: maxHistorySize,
 		shareHistory:   make([]ShareEntry, 0),
 		blockHistory:   make([]BlockEntry, 0),
 		sessionHistory: make([]Session, 0),
 		startTime:      time.Now(),
-		dataDir:        "/app/data", // Use absolute path in container
+		dataDir:        dataDir,
 		dataFile:       "stats.json",
 	}
 
@@ -154,16 +163,38 @@ func (c *Collector) Save() error {
 		return err
 	}
 
-	filePath := filepath.Join(c.dataDir, c.dataFile)
-	file, err := os.Create(filePath)
+	// Marshal first so a serialization error never touches the on-disk file.
+	encoded, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(data)
+	// Write atomically: stage to a temp file in the same directory, then rename
+	// over the target. rename(2) is atomic on POSIX, so a crash or `docker kill`
+	// mid-write can never leave a half-written, unparseable stats.json behind —
+	// readers always see either the old file or the fully new one.
+	filePath := filepath.Join(c.dataDir, c.dataFile)
+	tmp, err := os.CreateTemp(c.dataDir, c.dataFile+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	// Best-effort cleanup if we bail out before the rename succeeds.
+	defer os.Remove(tmpPath)
+
+	if _, err := tmp.Write(encoded); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	return os.Rename(tmpPath, filePath)
 }
 
 // Load restores statistics from disk
