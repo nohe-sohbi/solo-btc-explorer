@@ -49,7 +49,7 @@ func (s *Server) collectMetrics() []metric {
 		}
 	}
 
-	return []metric{
+	metrics := []metric{
 		{"soloforge_hashrate_hashes_per_second", "Combined hashrate of all workers in H/s.", "gauge", s.manager.GetTotalHashrate()},
 		{"soloforge_hashes_total", "Total number of hashes computed across all sessions.", "counter", asFloat(basic["total_hashes"])},
 		{"soloforge_shares_total", "Total shares submitted to the pool.", "counter", asFloat(basic["total_shares"])},
@@ -63,6 +63,19 @@ func (s *Server) collectMetrics() []metric {
 		{"soloforge_pool_authorized", "Whether the miner is authorized with the pool (1) or not (0).", "gauge", boolToFloat(s.stratum.IsAuthorized())},
 		{"soloforge_ws_clients", "Number of connected dashboard WebSocket clients.", "gauge", float64(s.wsHub.ClientCount())},
 	}
+
+	// Live network context, when a provider is wired in.
+	if s.network != nil {
+		ns := s.network.Get()
+		metrics = append(metrics,
+			metric{"soloforge_network_difficulty", "Current Bitcoin network difficulty.", "gauge", ns.Difficulty},
+			metric{"soloforge_network_hashrate_hashes_per_second", "Estimated total Bitcoin network hashrate in H/s.", "gauge", ns.NetworkHashrate},
+			metric{"soloforge_block_height", "Current Bitcoin chain tip height.", "gauge", float64(ns.BlockHeight)},
+			metric{"soloforge_btc_price_usd", "Current BTC/USD spot price.", "gauge", ns.PriceUSD},
+		)
+	}
+
+	return metrics
 }
 
 // renderMetrics writes the metric list in the Prometheus text exposition format.

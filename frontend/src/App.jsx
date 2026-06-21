@@ -3,9 +3,11 @@ import { useWebSocket, useAPI } from './hooks/useWebSocket';
 import { translations } from './translations';
 import { formatHashrate, formatNumber, formatUptime } from './lib/format';
 import { validateBitcoinAddress } from './lib/btcaddr';
+import { exportDataset, SHARE_COLUMNS, SESSION_COLUMNS } from './lib/exportData';
 import DemoBanner from './components/DemoBanner';
 import HashrateChart from './components/HashrateChart';
 import OddsPanel from './components/OddsPanel';
+import NetworkStats from './components/NetworkStats';
 
 // Number of hashrate samples to retain (~1 sample/second from the stats stream).
 const HASHRATE_HISTORY_SIZE = 60;
@@ -380,23 +382,56 @@ function HistoryPanel({ history, sessions, t }) {
         return new Date(timestamp).toLocaleString();
     };
 
+    // Export whichever dataset the active tab is showing, in the chosen format.
+    const handleExport = (format) => {
+        if (activeTab === 'sessions') {
+            exportDataset('sessions', sessions, SESSION_COLUMNS, format);
+        } else {
+            exportDataset('shares', history?.shares, SHARE_COLUMNS, format);
+        }
+        window.umami?.track('export_data', { dataset: activeTab, format });
+    };
+
+    const exportDisabled = activeTab === 'sessions'
+        ? !sessions || sessions.length === 0
+        : !history?.shares || history.shares.length === 0;
+
     return (
         <div className="glass-card panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                 <h3 className="panel__title" style={{ marginBottom: 0 }}>{t('historyTitle')}</h3>
-                <div className="tabs">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                    <div className="tabs">
+                        <button
+                            className={`btn btn--sm ${activeTab === 'shares' ? 'btn--primary' : 'btn--secondary'}`}
+                            onClick={() => setActiveTab('shares')}
+                        >
+                            {t('sharesFound')}
+                        </button>
+                        <button
+                            className={`btn btn--sm ${activeTab === 'sessions' ? 'btn--primary' : 'btn--secondary'}`}
+                            onClick={() => setActiveTab('sessions')}
+                            style={{ marginLeft: 'var(--space-2)' }}
+                        >
+                            {t('sessions')}
+                        </button>
+                    </div>
+                    <span style={{ width: '1px', height: '20px', background: 'var(--glass-border)' }} />
                     <button
-                        className={`btn btn--sm ${activeTab === 'shares' ? 'btn--primary' : 'btn--secondary'}`}
-                        onClick={() => setActiveTab('shares')}
+                        className="btn btn--sm btn--secondary"
+                        onClick={() => handleExport('csv')}
+                        disabled={exportDisabled}
+                        title={t('exportTitle')}
                     >
-                        {t('sharesFound')}
+                        {t('exportCSV')}
                     </button>
                     <button
-                        className={`btn btn--sm ${activeTab === 'sessions' ? 'btn--primary' : 'btn--secondary'}`}
-                        onClick={() => setActiveTab('sessions')}
-                        style={{ marginLeft: 'var(--space-2)' }}
+                        className="btn btn--sm btn--secondary"
+                        onClick={() => handleExport('json')}
+                        disabled={exportDisabled}
+                        title={t('exportTitle')}
                     >
-                        {t('sessions')}
+                        {t('exportJSON')}
                     </button>
                 </div>
             </div>
@@ -811,6 +846,11 @@ function App() {
                                 tooltip={t('difficultyTooltip')}
                             />
                         </div>
+                    </section>
+
+                    {/* Live Bitcoin network context */}
+                    <section className="section">
+                        <NetworkStats stats={stats} t={t} />
                     </section>
 
                     {/* Hashrate Chart + Odds estimator */}
