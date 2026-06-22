@@ -10,9 +10,8 @@ export default function DemoBanner({ t }) {
         <div
             role="status"
             style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 2000,
+                position: 'relative',
+                zIndex: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
