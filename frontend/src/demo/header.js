@@ -4,6 +4,7 @@
 import { doubleSHA256 } from './sha256.js';
 
 const MEMPOOL_BLOCKS_URL = 'https://mempool.space/api/v1/blocks';
+const MEMPOOL_PRICES_URL = 'https://mempool.space/api/v1/prices';
 
 // A real recent block, used as a fallback when the public API is unreachable so the
 // demo always works (even offline). Fields match the mempool.space /api/v1/blocks shape.
@@ -103,4 +104,18 @@ export async function fetchLatestBlock() {
     const blocks = await res.json();
     if (!Array.isArray(blocks) || blocks.length === 0) throw new Error('empty block list');
     return normalize(blocks[0]);
+}
+
+// Fetch the current BTC/USD spot price (best-effort) so the demo's odds panel can
+// show the expected fiat value of a found block. Returns 0 on any failure, which
+// the UI treats as "price unknown" and simply hides the USD figures.
+export async function fetchBtcPrice() {
+    try {
+        const res = await fetch(MEMPOOL_PRICES_URL, { headers: { Accept: 'application/json' } });
+        if (!res.ok) return 0;
+        const data = await res.json();
+        return typeof data.USD === 'number' && data.USD > 0 ? data.USD : 0;
+    } catch {
+        return 0;
+    }
 }

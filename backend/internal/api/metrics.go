@@ -72,6 +72,7 @@ func (s *Server) collectMetrics() []metric {
 			metric{"soloforge_network_hashrate_hashes_per_second", "Estimated total Bitcoin network hashrate in H/s.", "gauge", ns.NetworkHashrate},
 			metric{"soloforge_block_height", "Current Bitcoin chain tip height.", "gauge", float64(ns.BlockHeight)},
 			metric{"soloforge_btc_price_usd", "Current BTC/USD spot price.", "gauge", ns.PriceUSD},
+			metric{"soloforge_block_reward_btc", "Current block subsidy in BTC for the chain tip height.", "gauge", ns.BlockRewardBTC},
 		)
 	}
 

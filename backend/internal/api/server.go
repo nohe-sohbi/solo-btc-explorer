@@ -85,9 +85,13 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/ws", s.wsHub.HandleWebSocket)
 }
 
-// GetHandler returns the HTTP handler with CORS
+// GetHandler returns the fully wrapped HTTP handler. The chain is, from outermost
+// to innermost: access logging -> panic recovery -> CORS -> routes. Logging is
+// outermost so it wraps the writer in a statusRecorder that recovery reuses to
+// tell whether a response was already started, and so a recovered 500 still gets
+// logged.
 func (s *Server) GetHandler() http.Handler {
-	return s.corsMiddleware(s.mux)
+	return loggingMiddleware(recoverMiddleware(s.corsMiddleware(s.mux)))
 }
 
 // GetWSHub returns the WebSocket hub
@@ -195,6 +199,9 @@ func (s *Server) buildStatsPayload() map[string]interface{} {
 		}
 		if ns.PriceUSD > 0 {
 			payload["btc_price_usd"] = ns.PriceUSD
+		}
+		if ns.BlockRewardBTC > 0 {
+			payload["block_reward_btc"] = ns.BlockRewardBTC
 		}
 	}
 

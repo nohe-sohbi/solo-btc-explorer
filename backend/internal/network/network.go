@@ -26,13 +26,36 @@ const DefaultBaseURL = "https://mempool.space"
 // keeps us well within the public API's rate limits.
 const defaultInterval = 2 * time.Minute
 
+// halvingInterval is the number of blocks between Bitcoin subsidy halvings.
+const halvingInterval = 210000
+
+// initialSubsidy is the block reward (in BTC) for the first halving era.
+const initialSubsidy = 50.0
+
 // Stats is a snapshot of the live Bitcoin network context.
 type Stats struct {
 	Difficulty      float64   `json:"network_difficulty"`
 	BlockHeight     int64     `json:"block_height"`
 	NetworkHashrate float64   `json:"network_hashrate"`
 	PriceUSD        float64   `json:"btc_price_usd"`
+	BlockRewardBTC  float64   `json:"block_reward_btc"`
 	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+// BlockSubsidy returns the block reward (in BTC) mined at a given block height,
+// following Bitcoin's halving schedule: 50 BTC initially, halved every 210000
+// blocks. After 64 halvings the subsidy is zero (the reward has shifted entirely
+// to transaction fees). This is derived locally from the height rather than
+// fetched, so it costs nothing and is always correct.
+func BlockSubsidy(height int64) float64 {
+	if height < 0 {
+		return 0
+	}
+	halvings := height / halvingInterval
+	if halvings >= 64 {
+		return 0
+	}
+	return initialSubsidy / float64(uint64(1)<<uint(halvings))
 }
 
 // Fetcher periodically polls the explorer API and caches the most recent
@@ -104,6 +127,9 @@ func (f *Fetcher) Refresh(ctx context.Context) {
 	}
 	if height, err := f.fetchHeight(ctx); err == nil {
 		next.BlockHeight = height
+		// The block reward is a pure function of the height, so derive it here
+		// rather than fetching it — it's always exact and never blanks.
+		next.BlockRewardBTC = BlockSubsidy(height)
 	}
 	if price, err := f.fetchPrice(ctx); err == nil {
 		next.PriceUSD = price

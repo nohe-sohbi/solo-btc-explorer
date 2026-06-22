@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
     computeOdds,
+    computeExpectedValue,
+    blockSubsidy,
+    formatUSD,
     formatTimespan,
     formatOdds,
     HASHES_PER_DIFFICULTY,
     SECONDS_PER_DAY,
+    DEFAULT_BLOCK_REWARD_BTC,
 } from './odds.js';
 
 // Minimal translation stub: returns the key so assertions stay readable.
@@ -41,6 +45,60 @@ describe('computeOdds', () => {
         const rate = (diff * HASHES_PER_DIFFICULTY) / SECONDS_PER_DAY;
         const { probPerDay } = computeOdds(rate, diff);
         expect(probPerDay).toBeCloseTo(1 - Math.exp(-1), 6); // ~0.632
+    });
+});
+
+describe('computeExpectedValue', () => {
+    it('multiplies probability by reward and price', () => {
+        const ev = computeExpectedValue({
+            probPerDay: 0.001,
+            probPerYear: 0.3,
+            blockRewardBTC: 3.125,
+            priceUSD: 100000,
+        });
+        expect(ev.btcPerDay).toBeCloseTo(0.003125, 9);
+        expect(ev.btcPerYear).toBeCloseTo(0.9375, 6);
+        expect(ev.usdPerDay).toBeCloseTo(312.5, 4);
+        expect(ev.usdPerYear).toBeCloseTo(93750, 1);
+        expect(ev.hasPrice).toBe(true);
+    });
+
+    it('falls back to the default reward when none is given', () => {
+        const ev = computeExpectedValue({ probPerDay: 1, probPerYear: 1 });
+        expect(ev.rewardBTC).toBe(DEFAULT_BLOCK_REWARD_BTC);
+        expect(ev.btcPerDay).toBe(DEFAULT_BLOCK_REWARD_BTC);
+    });
+
+    it('returns null USD figures when the price is unknown', () => {
+        const ev = computeExpectedValue({ probPerDay: 0.5, probPerYear: 0.9, blockRewardBTC: 3.125 });
+        expect(ev.hasPrice).toBe(false);
+        expect(ev.usdPerDay).toBeNull();
+        expect(ev.usdPerYear).toBeNull();
+        expect(ev.btcPerDay).toBeCloseTo(1.5625, 6);
+    });
+});
+
+describe('blockSubsidy', () => {
+    it('follows the halving schedule', () => {
+        expect(blockSubsidy(0)).toBe(DEFAULT_BLOCK_REWARD_BTC); // unknown/zero -> default
+        expect(blockSubsidy(210000)).toBe(25);
+        expect(blockSubsidy(420000)).toBe(12.5);
+        expect(blockSubsidy(840000)).toBe(3.125);
+        expect(blockSubsidy(64 * 210000)).toBe(0);
+    });
+});
+
+describe('formatUSD', () => {
+    it('renders the empty marker for non-positive / nullish input', () => {
+        expect(formatUSD(null)).toBe('—');
+        expect(formatUSD(0)).toBe('—');
+        expect(formatUSD(-3)).toBe('—');
+    });
+
+    it('renders normal, tiny and astronomically-small amounts', () => {
+        expect(formatUSD(1234.5)).toBe('$1,234.50');
+        expect(formatUSD(0.000123)).toBe('$0.000123');
+        expect(formatUSD(1e-9)).toMatch(/e-/);
     });
 });
 

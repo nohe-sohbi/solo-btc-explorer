@@ -27,6 +27,62 @@ export function computeOdds(hashrate, networkDifficulty) {
     return { expectedSeconds, probPerDay, probPerYear, hasData: true };
 }
 
+// Default mainnet block subsidy (BTC) used when the backend hasn't reported the
+// live, height-derived reward yet. Kept in sync with the current halving era.
+export const DEFAULT_BLOCK_REWARD_BTC = 3.125;
+
+const HALVING_INTERVAL = 210000;
+
+// blockSubsidy returns the block reward (BTC) at a given height, following
+// Bitcoin's halving schedule (50 BTC, halved every 210000 blocks). Mirrors
+// network.BlockSubsidy in the Go backend so the demo computes the same value.
+export function blockSubsidy(height) {
+    if (!(height > 0)) return DEFAULT_BLOCK_REWARD_BTC;
+    const halvings = Math.floor(height / HALVING_INTERVAL);
+    if (halvings >= 64) return 0;
+    return 50 / 2 ** halvings;
+}
+
+// computeExpectedValue turns the abstract odds into concrete economics: how much
+// the mined reward is worth on average per day / per year. It's the long-run
+// expectation of a lottery — the probability of solving a block over the horizon
+// times the reward's fiat value. For solo CPU mining this is vanishingly small,
+// which is exactly the educational point.
+//
+//   blockRewardBTC: the block subsidy you'd win (defaults to the current era).
+//   priceUSD:       BTC/USD price; when unknown, the USD figures are null but the
+//                   BTC expectation is still returned.
+export function computeExpectedValue({ probPerDay, probPerYear, blockRewardBTC, priceUSD }) {
+    const reward = blockRewardBTC > 0 ? blockRewardBTC : DEFAULT_BLOCK_REWARD_BTC;
+    const day = probPerDay > 0 ? probPerDay : 0;
+    const year = probPerYear > 0 ? probPerYear : 0;
+
+    const btcPerDay = day * reward;
+    const btcPerYear = year * reward;
+    const hasPrice = priceUSD > 0;
+
+    return {
+        rewardBTC: reward,
+        btcPerDay,
+        btcPerYear,
+        usdPerDay: hasPrice ? btcPerDay * priceUSD : null,
+        usdPerYear: hasPrice ? btcPerYear * priceUSD : null,
+        hasPrice,
+    };
+}
+
+// formatUSD renders a USD expectation. Solo-mining expectations are tiny, so it
+// keeps enough significant figures to stay non-zero, and switches to scientific
+// notation once the value gets absurdly small.
+export function formatUSD(value) {
+    if (value == null || !isFinite(value) || value <= 0) return '—';
+    if (value >= 0.01) {
+        return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (value >= 1e-6) return `$${value.toFixed(6)}`;
+    return `$${value.toExponential(2)}`;
+}
+
 // formatTimespan renders a (possibly astronomical) duration in seconds. Solo CPU
 // mining lands in the "billions of years" range, so it falls back to scientific
 // notation once years get unwieldy. `t` is the translation function.

@@ -2,7 +2,9 @@
 // WebWorkers and exposes a surface mirroring the Go backend's REST + WebSocket API
 // (backend/internal/api/server.go), so the React hooks can talk to it transparently.
 
-import { buildBlockHeader, fetchLatestBlock, FALLBACK_BLOCK } from './header.js';
+import { buildBlockHeader, fetchLatestBlock, fetchBtcPrice, FALLBACK_BLOCK } from './header.js';
+import { blockSubsidy } from '../lib/odds.js';
+import { loadSnapshot, saveSnapshot, clearSnapshot } from './persistence.js';
 
 const DEFAULT_CONFIG = {
     pool_url: 'solo.ckpool.org',
@@ -14,6 +16,7 @@ const DEFAULT_CONFIG = {
 
 const SHARE_DIFFICULTY = 0.00002; // share target (a real pool sets one far below the network)
 const MAX_HISTORY = 1000;
+const PERSIST_THROTTLE_MS = 5000; // shares fire ~20/s; coalesce writes to localStorage
 
 class DemoEngine {
     constructor() {
@@ -35,9 +38,58 @@ class DemoEngine {
 
         this.block = null;          // { header, height, networkDifficulty, id }
         this.blockPromise = null;
+        this.priceUSD = 0;          // best-effort BTC/USD, for the odds panel's expected value
 
         this.subscribers = new Set();
         this.statsTimer = null;
+        this.persistTimer = null;
+
+        // Restore any previously persisted history/counters so a page refresh no
+        // longer wipes the demo's progress (mirrors the backend's durable stats).
+        this._restore();
+    }
+
+    // ---------- persistence (mirrors the backend's durable stats) ----------
+    _restore() {
+        const snap = loadSnapshot();
+        if (!snap) return;
+        this.totalShares = snap.totalShares;
+        this.acceptedShares = snap.acceptedShares;
+        this.bestDifficulty = snap.bestDifficulty;
+        this.previousSeconds = snap.previousSeconds;
+        this.shareHistory = snap.shareHistory;
+        this.blockHistory = snap.blockHistory;
+        this.sessionHistory = snap.sessionHistory;
+    }
+
+    _snapshot() {
+        return {
+            totalShares: this.totalShares,
+            acceptedShares: this.acceptedShares,
+            bestDifficulty: this.bestDifficulty,
+            previousSeconds: this.previousSeconds,
+            shareHistory: this.shareHistory,
+            blockHistory: this.blockHistory,
+            sessionHistory: this.sessionHistory,
+        };
+    }
+
+    // Coalesced save: high-frequency events (shares) schedule a single write.
+    _persist() {
+        if (this.persistTimer) return;
+        this.persistTimer = setTimeout(() => {
+            this.persistTimer = null;
+            saveSnapshot(this._snapshot());
+        }, PERSIST_THROTTLE_MS);
+    }
+
+    // Immediate save for low-frequency, high-value moments (session end, block).
+    _persistNow() {
+        if (this.persistTimer) {
+            clearTimeout(this.persistTimer);
+            this.persistTimer = null;
+        }
+        saveSnapshot(this._snapshot());
     }
 
     // ---------- pub/sub (WebSocket-like) ----------
@@ -82,6 +134,11 @@ class DemoEngine {
                     networkDifficulty: raw.difficulty,
                     id: raw.id,
                 };
+                // Best-effort price so the odds panel can show expected value; a
+                // failure just leaves it at 0 and the USD figures stay hidden.
+                if (live) {
+                    fetchBtcPrice().then((p) => { this.priceUSD = p; }).catch(() => {});
+                }
                 // Deferred so this log lands in its own tick and isn't batched away by
                 // the stats event emitted right after mining starts.
                 setTimeout(() => {
@@ -123,7 +180,10 @@ class DemoEngine {
         switch (msg.type) {
             case 'progress':
                 rec.hashCount = msg.hashCount;
-                if (msg.bestDifficulty > this.bestDifficulty) this.bestDifficulty = msg.bestDifficulty;
+                if (msg.bestDifficulty > this.bestDifficulty) {
+                    this.bestDifficulty = msg.bestDifficulty;
+                    this._persist(); // capture new best-difficulty records
+                }
                 break;
             case 'share':
                 this.totalShares++;
@@ -140,6 +200,7 @@ class DemoEngine {
                 });
                 // Shares surface via history polling + counters; no per-share event
                 // emission (they fire ~20/s and would needlessly churn the UI).
+                this._persist();
                 break;
             case 'block':
                 this.blockHistory.push({
@@ -148,6 +209,7 @@ class DemoEngine {
                     prev_hash: this.block ? this.block.id : '',
                 });
                 if (this.blockHistory.length > MAX_HISTORY) this.blockHistory.shift();
+                this._persistNow(); // a candidate block is the rarest, most precious event
                 this._emit('block', { difficulty: msg.difficulty });
                 this._log('🆕 Bloc candidat trouvé (démo) !', 'var(--gold)');
                 break;
@@ -213,8 +275,12 @@ class DemoEngine {
             accepted_shares: this.acceptedShares,
             best_difficulty: this.bestDifficulty,
             uptime_seconds: uptime,
-            // Surfaced so the odds estimator can use the live network difficulty.
+            // Surfaced so the odds estimator can use the live network difficulty,
+            // the height-derived block reward and (best-effort) the BTC price.
             network_difficulty: this.block ? this.block.networkDifficulty : 0,
+            block_height: this.block ? this.block.height : 0,
+            block_reward_btc: this.block ? blockSubsidy(this.block.height) : 0,
+            btc_price_usd: this.priceUSD,
             workers,
             connected: this.running,
             authorized: this.running,
@@ -235,6 +301,7 @@ class DemoEngine {
             rec.startTime = rec.running ? Date.now() : 0;
         }
         if (this.running) this.startTime = Date.now();
+        clearSnapshot(); // drop persisted history so the reset survives a refresh
         this._emit('stats', this.buildStatsPayload());
         return { status: 'reset' };
     }
@@ -289,6 +356,7 @@ class DemoEngine {
             rec.running = false;
             rec.worker.postMessage({ cmd: 'stop' });
         }
+        this._persistNow(); // flush the just-recorded session before going idle
         this._emit('stats', this.buildStatsPayload());
         return { status: 'stopped' };
     }

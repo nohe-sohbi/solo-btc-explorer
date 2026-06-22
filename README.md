@@ -25,6 +25,14 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
 - 📈 **Hashrate History Chart** - Live SVG sparkline of recent hashrate with current / peak / average
 - 🎲 **Mining Odds Estimator** - Live "what are my real chances?" panel: expected time to a block and
   per-day / per-year probability derived from your hashrate vs. network difficulty
+- 💰 **Expected-Value Economics** - When the live BTC price is known, the odds panel also shows the
+  long-run *expected value* of the reward (probability × block subsidy × price) in $/day and $/year,
+  turning the abstract odds into concrete (vanishingly small) economics. The block subsidy itself is
+  derived from the chain-tip height via Bitcoin's halving schedule — always exact, never fetched — and
+  is exposed on `/api/network` (`block_reward_btc`) and `/metrics` (`soloforge_block_reward_btc`)
+- 💾 **Durable Demo** - The backend-free demo now persists its stats, share/session history and
+  best-difficulty records to `localStorage` (throttled, atomic-ish, schema-versioned), so a page
+  refresh no longer wipes your progress — mirroring the backend's durable stats. Reset clears it too
 - 🌐 **Live Network Context** - The backend polls [mempool.space](https://mempool.space) for the real
   network difficulty, chain-tip height, total network hashrate and BTC/USD price. These feed the odds
   estimator (so it runs against *real* difficulty, not a hard-coded fallback), a "Bitcoin Network" panel
@@ -50,6 +58,10 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
   is configurable via the `DATA_DIR` environment variable
 - 🩺 **Health & Readiness Probes** - `/healthz` (liveness) and `/readyz` (pool connected + authorized) plus
   graceful HTTP shutdown that drains in-flight requests on `SIGTERM`
+- 🧯 **Resilient HTTP Layer** - Every request passes through panic-recovery middleware, so a bug in any
+  handler returns a clean `500` (with the stack logged) instead of crashing the process — which matters
+  because that same process is mining. An access-logging middleware records method, path, status, size
+  and latency for every request
 - 🛡️ **Configurable Origins** - `ALLOWED_ORIGINS` locks down CORS *and* the WebSocket handshake to an
   explicit allowlist for hosted deployments (defaults to permissive for local dev)
 - 🐳 **Dockerized** - One command to run the entire stack
@@ -144,7 +156,7 @@ every push and PR.
 | GET | `/api/stats` | Mining statistics |
 | POST | `/api/stats/reset` | Clear all statistics and history |
 | GET | `/api/history` | Share history |
-| GET | `/api/network` | Live Bitcoin network context (difficulty, height, hashrate, price) |
+| GET | `/api/network` | Live Bitcoin network context (difficulty, height, hashrate, price, block reward) |
 | GET | `/api/export` | Download history as CSV/JSON (`?dataset=shares\|sessions&format=csv\|json`) |
 | GET | `/metrics` | Prometheus-format metrics |
 | GET | `/healthz` | Liveness probe (always 200 while serving) |

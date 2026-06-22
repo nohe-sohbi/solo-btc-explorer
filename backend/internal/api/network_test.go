@@ -66,7 +66,7 @@ func TestStatsPayloadIncludesNetworkContext(t *testing.T) {
 
 func TestMetricsIncludeNetworkContext(t *testing.T) {
 	s := newTestServer(t)
-	s.SetNetworkProvider(stubNetwork{network.Stats{Difficulty: 200, PriceUSD: 65000}})
+	s.SetNetworkProvider(stubNetwork{network.Stats{Difficulty: 200, PriceUSD: 65000, BlockRewardBTC: 3.125}})
 
 	out := renderMetrics(s.collectMetrics())
 	if !strings.Contains(out, "soloforge_network_difficulty 200") {
@@ -74,5 +74,25 @@ func TestMetricsIncludeNetworkContext(t *testing.T) {
 	}
 	if !strings.Contains(out, "soloforge_btc_price_usd 65000") {
 		t.Fatalf("metrics missing btc price: %q", out)
+	}
+	if !strings.Contains(out, "soloforge_block_reward_btc 3.125") {
+		t.Fatalf("metrics missing block reward: %q", out)
+	}
+}
+
+func TestStatsPayloadIncludesBlockReward(t *testing.T) {
+	s := newTestServer(t)
+	s.SetNetworkProvider(stubNetwork{network.Stats{BlockHeight: 840000, BlockRewardBTC: 3.125}})
+
+	payload := s.buildStatsPayload()
+	if payload["block_reward_btc"] != 3.125 {
+		t.Fatalf("block_reward_btc = %v, want 3.125", payload["block_reward_btc"])
+	}
+
+	// Omitted when unknown so the dashboard can fall back to a static reward.
+	s2 := newTestServer(t)
+	s2.SetNetworkProvider(stubNetwork{network.Stats{Difficulty: 1e14}})
+	if _, ok := s2.buildStatsPayload()["block_reward_btc"]; ok {
+		t.Fatalf("block_reward_btc should be omitted when zero")
 	}
 }
