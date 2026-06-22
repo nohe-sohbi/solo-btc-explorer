@@ -760,6 +760,19 @@ body {
   }
 }
 
+/* Two-column layout that collapses to a single column on narrow screens. */
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 900px) {
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .section {
   margin-bottom: var(--space-8);
 }
@@ -921,4 +934,115 @@ body {
 
 .mb-6 {
   margin-bottom: var(--space-6);
+}
+
+/* ============================================
+   RESPONSIVE / MOBILE
+   ============================================ */
+
+/* Tablet and below: tighten the outer padding and let the header wrap. */
+@media (max-width: 900px) {
+  .app-header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .app-header__inner {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .app-main {
+    padding: var(--space-4);
+  }
+
+  .hero {
+    padding: var(--space-10) var(--space-4);
+    margin: calc(-1 * var(--space-4));
+    margin-bottom: var(--space-6);
+  }
+
+  .hero__title {
+    font-size: var(--text-4xl);
+  }
+}
+
+/* Phones: stack the header controls, shrink type, single-column everything. */
+@media (max-width: 600px) {
+  html {
+    font-size: 15px;
+  }
+
+  .app-header__inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-header__brand {
+    justify-content: center;
+  }
+
+  .app-header__status {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+  }
+
+  /* The primary start/stop action gets a full-width tap target. */
+  .app-header__status .btn--primary,
+  .app-header__status .btn--danger {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .hero {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .hero__title {
+    font-size: var(--text-3xl);
+  }
+
+  .hero__description {
+    font-size: var(--text-base);
+  }
+
+  .stat-card {
+    padding: var(--space-5);
+  }
+
+  .stat-card__value {
+    font-size: var(--text-2xl);
+    word-break: break-word;
+  }
+
+  .panel {
+    padding: var(--space-4);
+  }
+
+  .section__header {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  /* Stack the worker row so the name/hashrate don't get squeezed. */
+  .worker-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .worker-card__info {
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .worker-card__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Wide tables stay readable; the wrapping div handles horizontal scroll. */
+  .table {
+    min-width: 480px;
+  }
 }

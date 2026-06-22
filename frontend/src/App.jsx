@@ -855,7 +855,7 @@ function App() {
 
                     {/* Hashrate Chart + Odds estimator */}
                     <section className="section">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
+                        <div className="two-col-grid">
                             <HashrateChart data={hashrateHistory} formatHashrate={formatHashrate} t={t} />
                             <OddsPanel
                                 hashrate={stats?.hashrate || 0}
@@ -904,7 +904,7 @@ function App() {
 
                     {/* Settings & Logs */}
                     <section className="section">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
+                        <div className="two-col-grid">
                             <SettingsPanel config={config} onSave={handleSaveConfig} isMining={isMining} t={t} showToast={showToast} />
                             <LiveLog logs={logs} t={t} />
                         </div>
