@@ -857,7 +857,13 @@ function App() {
                     <section className="section">
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
                             <HashrateChart data={hashrateHistory} formatHashrate={formatHashrate} t={t} />
-                            <OddsPanel hashrate={stats?.hashrate || 0} networkDifficulty={networkDifficulty} t={t} />
+                            <OddsPanel
+                                hashrate={stats?.hashrate || 0}
+                                networkDifficulty={networkDifficulty}
+                                btcPrice={stats?.btc_price_usd || 0}
+                                blockReward={stats?.block_reward_btc || 0}
+                                t={t}
+                            />
                         </div>
                     </section>
 
