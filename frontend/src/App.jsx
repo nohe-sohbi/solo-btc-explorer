@@ -299,6 +299,25 @@ function SettingsPanel({ config, onSave, isMining, t, showToast }) {
 
             <div className="panel__row">
                 <div className="input-group">
+                    <label className="input-group__label">{t('workerName')}</label>
+                    <input
+                        type="text"
+                        className="input"
+                        placeholder={t('workerPlaceholder')}
+                        value={localConfig.worker_name || ''}
+                        onChange={(e) => handleChange('worker_name', e.target.value)}
+                        disabled={isMining}
+                        maxLength={64}
+                        pattern="[A-Za-z0-9_]*"
+                    />
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
+                        {t('workerHelp')}
+                    </div>
+                </div>
+            </div>
+
+            <div className="panel__row">
+                <div className="input-group">
                     <label className="input-group__label">{t('poolPort')}</label>
                     <input
                         type="number"
@@ -525,6 +544,7 @@ function App() {
         pool_url: 'solo.ckpool.org',
         pool_port: 3333,
         wallet_address: '',
+        worker_name: '',
         max_cpu_percent: 80,
         num_workers: 1
     });

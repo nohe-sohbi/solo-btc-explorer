@@ -135,6 +135,7 @@ every push and PR.
 |---------|-------------|---------|
 | Pool URL | Mining pool address | `solo.ckpool.org` |
 | Pool Port | Mining pool port | `3333` |
+| Worker Name | Optional worker label for pools that use `ADDRESS.worker` usernames | _(empty)_ |
 | CPU % | Maximum CPU usage | `80%` |
 | Workers | Number of mining threads | `1` |
 
@@ -147,6 +148,21 @@ every push and PR.
 | `ALLOWED_ORIGINS` | Comma-separated CORS/WebSocket origin allowlist (e.g. `https://miner.example.com`). Empty = allow all | _(empty)_ |
 | `DATA_DIR` | Directory where `stats.json` is persisted | `/app/data` |
 | `MEMPOOL_API_URL` | Base URL for the network-context explorer API | `https://mempool.space` |
+
+### Pools that require a worker label
+
+Leave **Worker Name** empty for pools that authorize with a Bitcoin address alone. For pools that require the common `ADDRESS.worker` format, enter only the label in **Worker Name**. SoloForge keeps validating the Bitcoin address separately, then appends the label for Stratum authorization and share submission.
+
+For example, BTC PoW Lab accepts the following configuration:
+
+| Setting | Value |
+|---------|-------|
+| Pool URL | `stratum.btcpowlab-pool.com` |
+| Pool Port | `3333` |
+| Wallet Address | Your Bitcoin mainnet address |
+| Worker Name | `soloforge` |
+
+The resulting Stratum username is `YOUR_ADDRESS.soloforge`. Bitcoin block discovery remains probabilistic and no pool can guarantee a block, reward or profit.
 
 ## API Endpoints
 

@@ -436,6 +436,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			"pool_url":        s.cfg.GetPoolURL(),
 			"pool_port":       s.cfg.GetPoolPort(),
 			"wallet_address":  s.cfg.GetWalletAddress(),
+			"worker_name":     s.cfg.GetWorkerName(),
 			"max_cpu_percent": s.cfg.GetMaxCPUPercent(),
 			"num_workers":     s.cfg.GetNumWorkers(),
 		})
@@ -503,8 +504,8 @@ func (s *Server) handleMiningStart(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(500 * time.Millisecond)
 
 		// Authorize
-		wallet := s.cfg.GetWalletAddress()
-		if wallet == "" {
+		username := s.cfg.GetStratumUsername()
+		if username == "" {
 			jsonResponse(w, map[string]interface{}{
 				"status": "error",
 				"error":  "No wallet address configured",
@@ -512,7 +513,7 @@ func (s *Server) handleMiningStart(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.stratum.Authorize(wallet, "x"); err != nil {
+		if err := s.stratum.Authorize(username, "x"); err != nil {
 			jsonResponse(w, map[string]interface{}{
 				"status": "error",
 				"error":  err.Error(),
