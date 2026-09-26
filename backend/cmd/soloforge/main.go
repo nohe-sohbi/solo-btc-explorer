@@ -63,8 +63,8 @@ func main() {
 
 	// Wire up callbacks: when a share is found, submit it via stratum
 	manager.SetShareCallback(func(workerID int, jobID, extranonce2, ntime, nonce string, difficulty float64) {
-		wallet := cfg.GetWalletAddress()
-		if err := stratumClient.Submit(wallet, jobID, extranonce2, ntime, nonce); err != nil {
+		username := cfg.GetStratumUsername()
+		if err := stratumClient.Submit(username, jobID, extranonce2, ntime, nonce); err != nil {
 			log.Printf("Failed to submit share: %v", err)
 		}
 		w := manager.GetWorker(workerID)

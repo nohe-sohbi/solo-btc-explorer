@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -25,6 +26,7 @@ func TestUpdate(t *testing.T) {
 		"pool_url":        "pool.example.com",
 		"pool_port":       float64(4444), // JSON numbers decode to float64
 		"wallet_address":  "bc1qexample",
+		"worker_name":     "living_room",
 		"max_cpu_percent": float64(50),
 		"num_workers":     float64(3),
 	})
@@ -37,6 +39,12 @@ func TestUpdate(t *testing.T) {
 	}
 	if cfg.GetWalletAddress() != "bc1qexample" {
 		t.Fatalf("wallet not updated: %q", cfg.GetWalletAddress())
+	}
+	if cfg.GetWorkerName() != "living_room" {
+		t.Fatalf("worker name not updated: %q", cfg.GetWorkerName())
+	}
+	if cfg.GetStratumUsername() != "bc1qexample.living_room" {
+		t.Fatalf("unexpected stratum username: %q", cfg.GetStratumUsername())
 	}
 	if cfg.GetMaxCPUPercent() != 50 {
 		t.Fatalf("cpu percent not updated: %d", cfg.GetMaxCPUPercent())
@@ -89,6 +97,7 @@ func TestValidateUpdatesAcceptsValidInput(t *testing.T) {
 		"pool_url":        "solo.ckpool.org",
 		"pool_port":       float64(3333),
 		"wallet_address":  "1FngDUBvDhPh9z3paCRHFEtHjnUMAFacn9",
+		"worker_name":     "soloforge",
 		"max_cpu_percent": float64(80),
 		"num_workers":     float64(4),
 	})
@@ -109,6 +118,22 @@ func TestValidateUpdatesAllowsClearingWallet(t *testing.T) {
 	}
 }
 
+func TestValidateUpdatesWorkerName(t *testing.T) {
+	valid := []interface{}{``, `worker1`, `living_room`, `A1`}
+	for _, value := range valid {
+		if err := ValidateUpdates(map[string]interface{}{"worker_name": value}); err != nil {
+			t.Fatalf("expected %q to be valid: %v", value, err)
+		}
+	}
+
+	invalid := []interface{}{`contains.dot`, `contains space`, `bad-dash`, strings.Repeat("a", 65), float64(1)}
+	for _, value := range invalid {
+		if err := ValidateUpdates(map[string]interface{}{"worker_name": value}); err == nil {
+			t.Fatalf("expected %q to be invalid", value)
+		}
+	}
+}
+
 func TestValidateUpdatesRejectsBadValues(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -120,6 +145,7 @@ func TestValidateUpdatesRejectsBadValues(t *testing.T) {
 		{"port too high", map[string]interface{}{"pool_port": float64(70000)}},
 		{"port wrong type", map[string]interface{}{"pool_port": "3333"}},
 		{"short wallet", map[string]interface{}{"wallet_address": "abc"}},
+		{"invalid worker name", map[string]interface{}{"worker_name": "living.room"}},
 		{"cpu too low", map[string]interface{}{"max_cpu_percent": float64(5)}},
 		{"cpu too high", map[string]interface{}{"max_cpu_percent": float64(150)}},
 		{"workers zero", map[string]interface{}{"num_workers": float64(0)}},
