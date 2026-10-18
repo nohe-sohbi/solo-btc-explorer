@@ -45,7 +45,7 @@ It is available in **French and English**, in a **light and a dark theme** (one 
   lottery update. Numbers are written out in words in each language (French long scale, English short scale)
 - 🏆 **Win moment** - When a candidate block is found, a dialog shows what was found, by whom, the odds it
   beat, and lets you export the proof as JSON
-- 🛟 **Honest states** - Banners for pool or server loss (with a live countdown to the next reconnection and a "retry now" button, backed by pool-health fields on `/api/stats`: reconnections, last error, last job), fallback network data, high CPU use and background
+- 🛟 **Honest states** - Banners for pool or server loss (with a live countdown to the next reconnection and a "retry now" button, backed by pool-health fields on `/api/stats`: reconnections, last error, last job), a missing Bitcoin block, high CPU use and background
   tabs, each saying what happens, what is safe, and what to do. Destructive actions (reset) spell out exactly
   what will be erased
 - ♿ **Accessible** - Focus-trapped dialogs, labelled controls, keyboard-friendly disclosures, readable contrast
