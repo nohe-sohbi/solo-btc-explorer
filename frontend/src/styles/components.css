@@ -209,6 +209,7 @@
 .link-button--block {
     display: block;
     margin-top: 10px;
+    line-height: 17px;
     font-size: 13.5px;
     font-weight: 600;
 }
@@ -614,6 +615,18 @@
     margin-top: 16px;
 }
 
+.field--slider {
+    margin-top: 18px;
+}
+
+.field--slider + .field--slider {
+    margin-top: 20px;
+}
+
+.field--slider .field__hint {
+    margin-top: 0;
+}
+
 .field--narrow {
     flex: 0 1 140px;
 }
@@ -687,6 +700,10 @@
     flex: 1 1 240px;
 }
 
+.field-grid .field--narrow {
+    flex: 0 1 140px;
+}
+
 .input {
     width: 100%;
     height: 42px;
@@ -714,7 +731,7 @@
 
 .slider {
     width: 100%;
-    margin: 10px 0 0;
+    margin: 8px 0 0;
     accent-color: var(--accent-fill);
 }
 

@@ -537,6 +537,10 @@
     padding: 24px;
 }
 
+.simulator .slider {
+    margin-top: 10px;
+}
+
 .simulator__readout {
     display: flex;
     flex-wrap: wrap;

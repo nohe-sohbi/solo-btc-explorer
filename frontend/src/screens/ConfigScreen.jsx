@@ -36,7 +36,7 @@ function LockedNote({ children }) {
 function SliderField({ label, note, value, onChange, range, unit, disabled, help }) {
     const id = useId();
     return (
-        <div className="field">
+        <div className="field field--slider">
             <div className="field__row">
                 <label className="field__label field__label--strong" htmlFor={id}>
                     {label} <span className="field__note">{note}</span>
