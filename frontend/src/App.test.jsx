@@ -291,7 +291,9 @@ describe('state banners', () => {
         emit({ stats: runningStats({ connected: false, pool_retry_in_seconds: 8, pool_last_error: 'dial tcp: i/o timeout' }) });
         await act(async () => { vi.advanceTimersByTime(4100); });
 
-        expect(screen.getByText(/Nouvelle tentative dans 8 s/)).toBeTruthy();
+        const body = document.querySelector('.banner__body');
+        expect(body.textContent).toMatch(/Nouvelle tentative dans 8 s/);
+        expect(body.querySelector('code').textContent).toBe('8 s');
         fireEvent.click(screen.getByRole('button', { name: 'Réessayer maintenant' }));
         expect(backend.api.post).toHaveBeenCalledWith('/pool/retry', {});
     });

@@ -320,7 +320,7 @@ describe('StateBanners: the Bitcoin block cannot be fetched (demo)', () => {
     it('says mining starts as soon as the block is received, with the countdown', () => {
         render(<StateBanners t={t} session={session()} backgroundNotice={noNotice} />);
         expect(screen.getByText('Impossible de récupérer le bloc actuel')).toBeTruthy();
-        expect(screen.getByText(/démarre dès que le bloc est reçu\. Nouvelle tentative dans 15 s/)).toBeTruthy();
+        expect(document.querySelector('.banner__body').textContent).toMatch(/démarre dès que le bloc est reçu\. Nouvelle tentative dans 15 s/);
     });
 
     it('lets the user retry right away', () => {

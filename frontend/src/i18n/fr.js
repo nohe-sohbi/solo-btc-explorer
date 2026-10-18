@@ -214,7 +214,7 @@ export default {
     // ----- Bandeaux d'état -----
     bannerPoolTitle: "Connexion au pool interrompue",
     bannerPoolBody: "Nouvelle tentative automatique. Votre mining reprend tout seul, vos statistiques sont conservées.",
-    bannerPoolBodyRetry: "Nouvelle tentative dans {seconds} s. Votre mining reprend tout seul, vos statistiques sont conservées.",
+    bannerPoolBodyRetry: "Nouvelle tentative dans `{seconds} s`. Votre mining reprend tout seul, vos statistiques sont conservées.",
     bannerPoolRetry: "Réessayer maintenant",
     bannerAdvancedOnly: "Vue avancée uniquement :",
     bannerPoolDetail: "dernière erreur : {error}",
@@ -227,7 +227,7 @@ export default {
     bannerCpuBody: "À {cpu} %, il peut chauffer et ralentir d'autres applications.",
     bannerCpuAction: "Passer à {target} %",
     bannerBlockTitle: "Impossible de récupérer le bloc actuel",
-    bannerBlockBody: "Le mining démarre dès que le bloc est reçu. Nouvelle tentative dans {seconds} s. Vérifiez votre connexion internet.",
+    bannerBlockBody: "Le mining démarre dès que le bloc est reçu. Nouvelle tentative dans `{seconds} s`. Vérifiez votre connexion internet.",
     bannerBlockRetry: "Réessayer",
 
     // ----- Mes chances (simulateur) -----

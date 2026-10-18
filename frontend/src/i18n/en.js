@@ -215,7 +215,7 @@ export default {
     // ----- State banners -----
     bannerPoolTitle: "Pool connection interrupted",
     bannerPoolBody: "Retrying automatically. Mining resumes on its own and your statistics are kept.",
-    bannerPoolBodyRetry: "Retrying in {seconds} s. Mining resumes on its own and your statistics are kept.",
+    bannerPoolBodyRetry: "Retrying in `{seconds} s`. Mining resumes on its own and your statistics are kept.",
     bannerPoolRetry: "Retry now",
     bannerAdvancedOnly: "Advanced view only:",
     bannerPoolDetail: "last error: {error}",
@@ -228,7 +228,7 @@ export default {
     bannerCpuBody: "At {cpu}%, it may heat up and slow down other applications.",
     bannerCpuAction: "Switch to {target}%",
     bannerBlockTitle: "Couldn't fetch the current block",
-    bannerBlockBody: "Mining starts as soon as the block is received. Retrying in {seconds} s. Check your internet connection.",
+    bannerBlockBody: "Mining starts as soon as the block is received. Retrying in `{seconds} s`. Check your internet connection.",
     bannerBlockRetry: "Retry",
 
     // ----- My odds (simulator) -----

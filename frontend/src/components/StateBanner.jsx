@@ -1,4 +1,5 @@
 import Icon from './Icon.jsx';
+import Rich from './Rich.jsx';
 
 const ICONS = { info: 'info', warn: 'warning', error: 'warning' };
 
@@ -13,7 +14,9 @@ export default function StateBanner({ tone, title, body, action, spinning = fals
             <Icon name={spinning ? 'retry' : ICONS[tone]} size={22} className={spinning ? 'banner__icon is-spinning' : 'banner__icon'} />
             <div className="banner__text">
                 <div className="banner__title">{title}</div>
-                <div className="banner__body">{body}</div>
+                <div className="banner__body">
+                    <Rich text={body} />
+                </div>
             </div>
             {action && (
                 <button
