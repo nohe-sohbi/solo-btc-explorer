@@ -15,7 +15,7 @@ export default function ResetDialog({ t, lang, counts, onCancel, onConfirm, onEx
     };
 
     return (
-        <Dialog role="alertdialog" title={t('resetTitle')} closeLabel={t('dialogClose')} onClose={onCancel}>
+        <Dialog role="alertdialog" title={t('resetTitle')} onClose={onCancel}>
             <p className="dialog__lead">
                 <Rich
                     text={t('resetBody', {

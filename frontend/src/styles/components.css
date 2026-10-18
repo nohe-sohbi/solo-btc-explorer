@@ -1095,9 +1095,9 @@
 }
 
 .dialog__title {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.15;
     letter-spacing: -0.025em;
 }
 
@@ -1138,4 +1138,42 @@
 /* Without artwork the close button sits next to the title: keep them apart. */
 .dialog__close:first-child + .dialog__body .dialog__title {
     padding-right: 40px;
+}
+
+/* Confirmation of a destructive action: a small card, no artwork, no close button. */
+.dialog--compact {
+    max-width: 460px;
+    border: 1px solid var(--line-strong);
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(29, 35, 48, 0.12);
+}
+
+.dialog--compact .dialog__body {
+    padding: 22px;
+}
+
+.dialog--compact .dialog__title {
+    font-size: 17px;
+    line-height: 1.5;
+    letter-spacing: normal;
+}
+
+.dialog--compact .dialog__lead {
+    margin-top: 8px;
+    font-size: 13.5px;
+}
+
+.dialog--compact .dialog__lead + .link-button {
+    margin-top: 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.dialog--compact .dialog__actions {
+    margin-top: 18px;
+}
+
+.dialog--compact .btn {
+    height: 40px;
+    font-size: 14px;
 }

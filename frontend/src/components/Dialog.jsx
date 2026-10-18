@@ -6,10 +6,11 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
 // An accessible modal: it takes focus when opened, keeps Tab inside, closes on
 // Escape or a click on the backdrop, locks page scroll, and hands focus back to
 // whatever opened it. `role="alertdialog"` is for confirmations of destructive
-// actions.
+// actions: a compact card without a close button (its "Cancel" button is the way out).
 export default function Dialog({ title, eyebrow, closeLabel, onClose, role = 'dialog', art, children }) {
     const titleId = useId();
     const dialogRef = useRef(null);
+    const compact = role === 'alertdialog';
 
     useEffect(() => {
         const opener = document.activeElement;
@@ -51,7 +52,7 @@ export default function Dialog({ title, eyebrow, closeLabel, onClose, role = 'di
         >
             <div
                 ref={dialogRef}
-                className="dialog"
+                className={compact ? 'dialog dialog--compact' : 'dialog'}
                 role={role}
                 aria-modal="true"
                 aria-labelledby={titleId}
@@ -59,9 +60,11 @@ export default function Dialog({ title, eyebrow, closeLabel, onClose, role = 'di
                 onKeyDown={handleKeyDown}
             >
                 {art}
-                <button type="button" className="dialog__close" aria-label={closeLabel} onClick={onClose}>
-                    <Icon name="close" size={18} />
-                </button>
+                {!compact && (
+                    <button type="button" className="dialog__close" aria-label={closeLabel} onClick={onClose}>
+                        <Icon name="close" size={18} />
+                    </button>
+                )}
                 <div className="dialog__body">
                     {eyebrow && <div className="dialog__eyebrow">{eyebrow}</div>}
                     <h2 id={titleId} className="dialog__title">
