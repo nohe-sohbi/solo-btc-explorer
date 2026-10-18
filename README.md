@@ -6,7 +6,7 @@
 
 Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and streams live stats to a React dashboard over WebSocket. It also ships a **backend-free demo** that performs real SHA-256d proof-of-work client-side in the browser.
 
-**Live demo:** [solo-btc.sohbi.dev](https://solo-btc.sohbi.dev) — mining runs entirely in your browser (real hashing on a live Bitcoin block from mempool.space). It won't realistically find a block; that's the point of solo mining.
+**Live demo:** [solo-btc.sohbi.dev](https://solo-btc.sohbi.dev) — mining runs entirely in your browser (real hashing on a live Bitcoin block from mempool.space). It won't realistically find a block; that's the point of solo mining. If mempool.space can't be reached, the demo says so and starts mining as soon as the current block is received (it retries every 15 s).
 
 ## Screenshots
 

@@ -172,8 +172,8 @@ export default {
     activityEmpty: "Nothing yet. Events (validated proofs, records, connection) will show up here.",
     feedConnected: "Connected to pool {pool}",
     feedBlockLoaded: "Bitcoin block #{height} fetched: this is the one you are trying to validate",
-    feedSharesOne: "Proof of work validated by the pool",
-    feedSharesMany: "{count} proofs of work validated by the pool",
+    feedShare: "Proof of work validated by the pool · {worker}",
+    feedShareAnon: "Proof of work validated by the pool",
     feedRecord: "New record: your best attempt rises to {value}",
     feedDisconnected: "Pool connection lost",
     feedBlockFound: "Candidate block found by {worker}!",
@@ -229,7 +229,7 @@ export default {
     bannerCpuBody: "At {cpu}%, it may heat up and slow down other applications.",
     bannerCpuAction: "Switch to {target}%",
     bannerBlockTitle: "Couldn't fetch the current block",
-    bannerBlockBody: "The demo is using a fallback block in the meantime. Check your internet connection.",
+    bannerBlockBody: "Mining starts as soon as the block is received. Retrying in {seconds} s. Check your internet connection.",
     bannerBlockRetry: "Retry",
 
     // ----- My odds (simulator) -----

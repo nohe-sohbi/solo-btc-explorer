@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('./header.js', () => ({
-    FALLBACK_BLOCK: { id: 'fallback-id', height: 100, difficulty: 1e12 },
     buildBlockHeader: () => ({ buffer: new ArrayBuffer(80) }),
     candidateHashHex: (header, nonce) => `hash-of-${nonce}`,
     fetchLatestBlock: vi.fn(),
@@ -28,18 +27,24 @@ describe('DemoEngine block source', () => {
         expect(engine.buildStatsPayload()).toMatchObject({ block_source: 'live', block_height: 952143 });
     });
 
-    it('falls back to the bundled block when the API is unreachable', async () => {
+    it('reports the block as unavailable when the API is unreachable', async () => {
         fetchLatestBlock.mockRejectedValue(new Error('offline'));
+        expect(await engine.ensureBlock()).toBeNull();
+        expect(engine.buildStatsPayload()).toMatchObject({ block_source: 'unavailable', block_height: 0 });
+    });
+
+    it('asks the API again on the next call after a failure', async () => {
+        fetchLatestBlock.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(LIVE_BLOCK);
         await engine.ensureBlock();
-        expect(engine.blockSource).toBe('fallback');
-        expect(engine.buildStatsPayload()).toMatchObject({ block_source: 'fallback', block_height: 100 });
+        const block = await engine.ensureBlock();
+        expect(block.height).toBe(952143);
     });
 
     it('reports no source before any block was requested', () => {
         expect(engine.buildStatsPayload().block_source).toBe('none');
     });
 
-    it('upgrades from the fallback to the live block on refresh', async () => {
+    it('recovers on refresh after a failed first attempt', async () => {
         fetchLatestBlock.mockRejectedValue(new Error('offline'));
         await engine.ensureBlock();
 
@@ -67,6 +72,75 @@ describe('DemoEngine block source', () => {
         unsubscribe();
         clearInterval(engine.statsTimer);
         expect(seen.some((e) => e.type === 'stats' && e.data.block_source === 'live')).toBe(true);
+    });
+});
+
+describe('DemoEngine waiting for a block', () => {
+    let engine;
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        fetchLatestBlock.mockReset();
+        engine = new DemoEngine();
+        engine._spawn = vi.fn((name) => {
+            const rec = { id: engine.nextWorkerId++, name: name || 'w', worker: { postMessage: vi.fn() }, hashCount: 0, hashBase: 0, startTime: 0, running: false };
+            engine.workers.set(rec.id, rec);
+            return rec;
+        });
+    });
+
+    afterEach(() => {
+        engine.stopMining();
+        vi.useRealTimers();
+    });
+
+    it('starts computing as soon as the block is there', async () => {
+        fetchLatestBlock.mockResolvedValue(LIVE_BLOCK);
+        expect(await engine.startMining()).toEqual({ status: 'started' });
+        expect(engine.workers.size).toBeGreaterThan(0);
+        expect([...engine.workers.values()].every((rec) => rec.running)).toBe(true);
+    });
+
+    it('counts as running but computes nothing while the block is missing', async () => {
+        fetchLatestBlock.mockRejectedValue(new Error('offline'));
+        expect(await engine.startMining()).toEqual({ status: 'waiting' });
+        expect(engine.running).toBe(true);
+        expect(engine.workers.size).toBe(0);
+        expect(engine.buildStatsPayload()).toMatchObject({ block_source: 'unavailable', block_retry_in_seconds: 15 });
+    });
+
+    it('retries every 15 seconds and starts once the block arrives', async () => {
+        fetchLatestBlock.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(LIVE_BLOCK);
+        await engine.startMining();
+
+        await vi.advanceTimersByTimeAsync(15000);
+        expect(engine.block.height).toBe(952143);
+        expect(engine.workers.size).toBeGreaterThan(0);
+        expect(engine.buildStatsPayload()).not.toHaveProperty('block_retry_in_seconds');
+    });
+
+    it('keeps waiting and keeps retrying while the API stays down', async () => {
+        fetchLatestBlock.mockRejectedValue(new Error('offline'));
+        await engine.startMining();
+        await vi.advanceTimersByTimeAsync(15000);
+        expect(engine.workers.size).toBe(0);
+        expect(engine.buildStatsPayload().block_retry_in_seconds).toBe(15);
+    });
+
+    it('starts right away when the user retries by hand', async () => {
+        fetchLatestBlock.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(LIVE_BLOCK);
+        await engine.startMining();
+        await engine.refreshBlock();
+        expect(engine.workers.size).toBeGreaterThan(0);
+    });
+
+    it('stops retrying once mining is stopped', async () => {
+        fetchLatestBlock.mockRejectedValue(new Error('offline'));
+        await engine.startMining();
+        engine.stopMining();
+        fetchLatestBlock.mockClear();
+        await vi.advanceTimersByTimeAsync(60000);
+        expect(fetchLatestBlock).not.toHaveBeenCalled();
     });
 });
 

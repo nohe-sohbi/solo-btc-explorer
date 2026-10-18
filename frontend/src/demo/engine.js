@@ -2,7 +2,7 @@
 // WebWorkers and exposes a surface mirroring the Go backend's REST + WebSocket API
 // (backend/internal/api/server.go), so the React hooks can talk to it transparently.
 
-import { buildBlockHeader, candidateHashHex, fetchLatestBlock, fetchBtcPrice, FALLBACK_BLOCK } from './header.js';
+import { buildBlockHeader, candidateHashHex, fetchLatestBlock, fetchBtcPrice } from './header.js';
 import { blockSubsidy } from '../lib/odds.js';
 import { loadSnapshot, saveSnapshot, clearSnapshot } from './persistence.js';
 import { EXAMPLE_WALLET_ADDRESS } from '../config/runtime.js';
@@ -17,6 +17,7 @@ const DEFAULT_CONFIG = {
 
 const SHARE_DIFFICULTY = 0.00002; // share target (a real pool sets one far below the network)
 const MAX_HISTORY = 1000;
+const BLOCK_RETRY_MS = 15000; // pause between attempts to fetch the current block
 const UNDO_WINDOW_MS = 30000; // how long a reset can still be undone (the backend allows the same)
 const PERSIST_THROTTLE_MS = 5000; // shares fire ~20/s; coalesce writes to localStorage
 
@@ -39,7 +40,9 @@ export class DemoEngine {
         this.sessionHistory = [];
 
         this.block = null;          // { header, height, networkDifficulty, id }
-        this.blockSource = 'none';  // 'live' (mempool.space) | 'fallback' (bundled block) | 'none'
+        this.blockSource = 'none';  // 'live' (mempool.space) | 'unavailable' (fetch failed) | 'none' (not tried yet)
+        this.blockRetryAt = 0;      // when the next fetch attempt fires while waiting for a block
+        this.blockRetryTimer = null;
         this.undoSnapshot = null;   // what the last reset cleared
         this.blockFetchedAt = 0;    // when the current block was received (the demo's "last job")
         this.blockPromise = null;
@@ -117,19 +120,16 @@ export class DemoEngine {
     }
 
     // ---------- block source (real data, no backend) ----------
-    // Fetches the current chain tip from mempool.space. When the API is unreachable
-    // it falls back to a bundled recent block so the demo works even offline; a
-    // block we already hold is never replaced by the fallback.
+    // Fetches the current chain tip from mempool.space. Resolves to the block, or
+    // to null when the API is unreachable and no block was ever received: mining
+    // then waits for one (see startMining). A block we already hold is kept.
     async _fetchBlock() {
         let raw;
-        let live;
         try {
             raw = await fetchLatestBlock();
-            live = true;
         } catch {
-            if (this.block) return this.block;
-            raw = FALLBACK_BLOCK;
-            live = false;
+            if (!this.block) this.blockSource = 'unavailable';
+            return this.block;
         }
         this.block = {
             header: buildBlockHeader(raw),
@@ -137,29 +137,43 @@ export class DemoEngine {
             networkDifficulty: raw.difficulty,
             id: raw.id,
         };
-        this.blockSource = live ? 'live' : 'fallback';
+        this.blockSource = 'live';
         this.blockFetchedAt = Date.now();
         // Best-effort price so the odds can show expected value; a failure just
         // leaves it at 0 and the USD figures stay hidden.
-        if (live) {
-            fetchBtcPrice().then((p) => { this.priceUSD = p; }).catch(() => {});
-        }
+        fetchBtcPrice().then((p) => { this.priceUSD = p; }).catch(() => {});
         return this.block;
     }
 
     async ensureBlock() {
         if (this.block) return this.block;
-        if (!this.blockPromise) this.blockPromise = this._fetchBlock();
+        if (!this.blockPromise) {
+            this.blockPromise = this._fetchBlock().finally(() => { this.blockPromise = null; });
+        }
         return this.blockPromise;
     }
 
-    // Retries the network fetch after a fallback. Workers that are already running
-    // keep hashing their current header (restarting them would zero their
-    // counters); the fresh block is used from the next start.
+    // Retries the network fetch ("Retry" in the UI). If mining was waiting for the
+    // block, it starts as soon as the block arrives.
     async refreshBlock() {
         await this._fetchBlock();
+        if (this.running && this.block && this.workers.size === 0) this._launchWorkers();
+        else if (this.running && !this.block) this._scheduleBlockRetry();
         this._emit('stats', this.buildStatsPayload());
         return { block_source: this.blockSource };
+    }
+
+    // While mining waits for a block, try again every BLOCK_RETRY_MS.
+    _scheduleBlockRetry() {
+        clearTimeout(this.blockRetryTimer);
+        this.blockRetryAt = Date.now() + BLOCK_RETRY_MS;
+        this.blockRetryTimer = setTimeout(() => this.refreshBlock(), BLOCK_RETRY_MS);
+    }
+
+    _cancelBlockRetry() {
+        clearTimeout(this.blockRetryTimer);
+        this.blockRetryTimer = null;
+        this.blockRetryAt = 0;
     }
 
     // ---------- worker plumbing ----------
@@ -301,6 +315,8 @@ export class DemoEngine {
             block_reward_btc: this.block ? blockSubsidy(this.block.height) : 0,
             btc_price_usd: this.priceUSD,
             block_source: this.blockSource,
+            last_share_worker: this.shareHistory.length ? this.shareHistory[this.shareHistory.length - 1].worker_name : '',
+            ...(this.blockRetryAt > 0 && { block_retry_in_seconds: Math.max(0, Math.ceil((this.blockRetryAt - now) / 1000)) }),
             pool_reconnects: 0,
             ...(this.block && {
                 pool_last_job_age_seconds: Math.floor((now - this.blockFetchedAt) / 1000),
@@ -385,20 +401,30 @@ export class DemoEngine {
         return limit > 0 ? rev.slice(0, limit) : rev;
     }
 
+    // Starts mining as soon as a block to work on is available. Until then the
+    // session counts as running, but no worker computes anything.
     async startMining() {
-        await this.ensureBlock();
+        this.running = true;
+        this.startTime = Date.now();
+        const block = await this.ensureBlock();
+        if (!this.running) return { status: 'stopped' }; // stopped while we waited
+        if (!block) {
+            this._scheduleBlockRetry();
+            this._emit('stats', this.buildStatsPayload());
+            return { status: 'waiting' };
+        }
+        this._launchWorkers();
+        return { status: 'started' };
+    }
 
+    _launchWorkers() {
+        this._cancelBlockRetry();
         if (this.workers.size === 0) {
             const n = this.config.num_workers > 0 ? this.config.num_workers : 1;
             for (let i = 0; i < n; i++) this._spawn('');
         }
-
-        this.running = true;
-        this.startTime = Date.now();
         for (const rec of this.workers.values()) this._startWorker(rec);
-
         this._emit('stats', this.buildStatsPayload());
-        return { status: 'started' };
     }
 
     stopMining() {
@@ -418,6 +444,7 @@ export class DemoEngine {
             if (this.sessionHistory.length > 50) this.sessionHistory.shift();
         }
         this.running = false;
+        this._cancelBlockRetry();
         for (const rec of this.workers.values()) {
             rec.running = false;
             rec.worker.postMessage({ cmd: 'stop' });

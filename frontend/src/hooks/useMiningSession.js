@@ -283,7 +283,8 @@ export function useMiningSession({ notify, t }) {
         poolHealth,
         poolLost,
         serverLost,
-        blockFallback: IS_DEMO && stats?.block_source === 'fallback',
+        blockMissing: IS_DEMO && running && stats?.block_source === 'unavailable',
+        blockRetryInSeconds: stats?.block_retry_in_seconds ?? 0,
         cpuHigh: running && config.max_cpu_percent >= HIGH_CPU_PERCENT,
         actions: {
             start,

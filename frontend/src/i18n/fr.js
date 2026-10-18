@@ -171,8 +171,8 @@ export default {
     activityEmpty: "Rien pour l'instant. Les événements (preuves validées, records, connexion) s'afficheront ici.",
     feedConnected: "Connecté au pool {pool}",
     feedBlockLoaded: "Bloc Bitcoin #{height} récupéré : c'est lui que vous essayez de valider",
-    feedSharesOne: "Preuve de travail validée par le pool",
-    feedSharesMany: "{count} preuves de travail validées par le pool",
+    feedShare: "Preuve de travail validée par le pool · {worker}",
+    feedShareAnon: "Preuve de travail validée par le pool",
     feedRecord: "Nouveau record : votre meilleur essai monte à {value}",
     feedDisconnected: "Connexion au pool perdue",
     feedBlockFound: "Bloc candidat trouvé par {worker} !",
@@ -228,7 +228,7 @@ export default {
     bannerCpuBody: "À {cpu} %, il peut chauffer et ralentir d'autres applications.",
     bannerCpuAction: "Passer à {target} %",
     bannerBlockTitle: "Impossible de récupérer le bloc actuel",
-    bannerBlockBody: "La démo utilise un bloc de secours en attendant. Vérifiez votre connexion internet.",
+    bannerBlockBody: "Le mining démarre dès que le bloc est reçu. Nouvelle tentative dans {seconds} s. Vérifiez votre connexion internet.",
     bannerBlockRetry: "Réessayer",
 
     // ----- Mes chances (simulateur) -----

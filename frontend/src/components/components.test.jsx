@@ -12,6 +12,7 @@ import ResetDialog from './ResetDialog.jsx';
 import WinDialog from './WinDialog.jsx';
 import SpeedChart from './SpeedChart.jsx';
 import Toast from './Toast.jsx';
+import StateBanners from './StateBanners.jsx';
 import { PERIODS } from '../lib/series.js';
 import { createTranslator } from '../i18n/index.js';
 
@@ -297,5 +298,35 @@ describe('Toast', () => {
         vi.advanceTimersByTime(4000);
         expect(onClose).toHaveBeenCalled();
         vi.useRealTimers();
+    });
+});
+
+describe('StateBanners: the Bitcoin block cannot be fetched (demo)', () => {
+    const session = (overrides = {}) => ({
+        config: { max_cpu_percent: 80 },
+        poolHealth: { retryInSeconds: 0, lastError: '' },
+        blockMissing: true,
+        blockRetryInSeconds: 15,
+        actions: { retryNetworkBlock: vi.fn() },
+        ...overrides,
+    });
+    const noNotice = { visible: false, dismiss: () => {} };
+
+    it('says mining starts as soon as the block is received, with the countdown', () => {
+        render(<StateBanners t={t} session={session()} backgroundNotice={noNotice} />);
+        expect(screen.getByText('Impossible de récupérer le bloc actuel')).toBeTruthy();
+        expect(screen.getByText(/démarre dès que le bloc est reçu\. Nouvelle tentative dans 15 s/)).toBeTruthy();
+    });
+
+    it('lets the user retry right away', () => {
+        const current = session();
+        render(<StateBanners t={t} session={current} backgroundNotice={noNotice} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+        expect(current.actions.retryNetworkBlock).toHaveBeenCalled();
+    });
+
+    it('is silent once the block is there', () => {
+        render(<StateBanners t={t} session={session({ blockMissing: false })} backgroundNotice={noNotice} />);
+        expect(screen.queryByText('Impossible de récupérer le bloc actuel')).toBeNull();
     });
 });

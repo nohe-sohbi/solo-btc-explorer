@@ -187,6 +187,10 @@ func (s *Server) buildStatsPayload() map[string]interface{} {
 		"authorized":      s.stratum.IsAuthorized(),
 	}
 	addPoolHealth(payload, s.stratum.Health())
+	if latest := s.stats.GetShareHistory(1); len(latest) > 0 {
+		// Lets the dashboard's activity feed say which worker found the latest proof.
+		payload["last_share_worker"] = latest[0].WorkerName
+	}
 
 	// Fold in live network context when available so the dashboard's odds
 	// estimator runs against the real difficulty instead of a stale fallback.

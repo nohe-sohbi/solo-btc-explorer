@@ -42,11 +42,11 @@ export default function StateBanners({ t, session, backgroundNotice, advanced })
                     )}
                 </>
             )}
-            {session.blockFallback && (
+            {session.blockMissing && (
                 <StateBanner
                     tone="error"
                     title={t('bannerBlockTitle')}
-                    body={t('bannerBlockBody')}
+                    body={t('bannerBlockBody', { seconds: session.blockRetryInSeconds })}
                     action={{ label: t('bannerBlockRetry'), onClick: actions.retryNetworkBlock }}
                 />
             )}

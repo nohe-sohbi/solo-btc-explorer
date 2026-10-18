@@ -6,13 +6,11 @@
 // Everything here is pure: `deriveEvents` compares two consecutive stats
 // snapshots, and `pushEvent` folds an event into the feed.
 
-import { formatInteger } from './bigNumbers.js';
-
 export const FEED_LIMIT = 30;
 
-// Events of these kinds merge into the most recent entry when they arrive in
-// quick succession, so a demo producing ~20 shares/s doesn't flood the feed.
-const COALESCE_WINDOW_MS = { shares: 30000, record: 10000 };
+// Records merge into the most recent entry when they arrive in quick succession,
+// so a run of small improvements doesn't flood the feed.
+const COALESCE_WINDOW_MS = { record: 10000 };
 
 let nextId = 1;
 
@@ -28,23 +26,17 @@ export function pushEvent(feed, event, limit = FEED_LIMIT) {
     const window = COALESCE_WINDOW_MS[event.kind];
 
     if (head && window && head.kind === event.kind && event.ts - head.ts <= window) {
-        const merged =
-            event.kind === 'shares'
-                ? { ...head, ts: event.ts, params: { count: head.params.count + event.params.count } }
-                : { ...head, ts: event.ts, params: event.params };
-        return [merged, ...feed.slice(1)];
+        return [{ ...head, ts: event.ts, params: event.params }, ...feed.slice(1)];
     }
     return [event, ...feed].slice(0, limit);
 }
 
 // describeEvent renders an event as a sentence in the current language.
-export function describeEvent(event, t, lang) {
+export function describeEvent(event, t) {
     const { key, params } = event;
     switch (key) {
-        case 'feedShares':
-            return params.count === 1
-                ? t('feedSharesOne')
-                : t('feedSharesMany', { count: formatInteger(params.count, lang) });
+        case 'feedShare':
+            return params.worker ? t('feedShare', { worker: params.worker }) : t('feedShareAnon');
         case 'feedRecord':
             return t('feedRecord', { value: params.value.toFixed(4) });
         default:
@@ -64,9 +56,10 @@ export function deriveEvents(prev, next, context = {}, ts = Date.now()) {
     if (next.block_height > 0 && next.block_height !== prev.block_height) {
         events.push(makeEvent('info', 'feedBlockLoaded', { height: next.block_height }, ts));
     }
-    const newShares = (next.accepted_shares || 0) - (prev.accepted_shares || 0);
-    if (newShares > 0) {
-        events.push(makeEvent('shares', 'feedShares', { count: newShares }, ts));
+    // One line per proof of work, naming the worker that found it. When several
+    // arrive within the same update, the line is for the latest one.
+    if ((next.accepted_shares || 0) > (prev.accepted_shares || 0)) {
+        events.push(makeEvent('share', 'feedShare', { worker: next.last_share_worker || '' }, ts));
     }
     if (next.best_difficulty > 0 && next.best_difficulty > (prev.best_difficulty || 0)) {
         events.push(makeEvent('record', 'feedRecord', { value: next.best_difficulty }, ts));

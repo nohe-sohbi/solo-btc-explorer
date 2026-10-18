@@ -33,7 +33,7 @@ export default function ActivityCard({ t, lang, feed, onOpenHistory }) {
                     {feed.slice(0, VISIBLE_EVENTS).map((event) => (
                         <li key={event.id} className="activity-row">
                             <span className={`dot dot--${TONES[event.kind] || 'info'}`} aria-hidden="true" />
-                            <span className="activity-row__text">{describeEvent(event, t, lang)}</span>
+                            <span className="activity-row__text">{describeEvent(event, t)}</span>
                             <time className="activity-row__time" dateTime={new Date(event.ts).toISOString()}>
                                 {new Date(event.ts).toLocaleTimeString(locale)}
                             </time>

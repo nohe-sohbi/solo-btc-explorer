@@ -193,10 +193,10 @@ describe('dashboard', () => {
     it('narrates what happens in the activity feed', async () => {
         await renderApp();
         emit({ stats: runningStats({ accepted_shares: 0, best_difficulty: 0, connected: false }) });
-        emit({ stats: runningStats({ accepted_shares: 12, best_difficulty: 0.002 }) });
+        emit({ stats: runningStats({ accepted_shares: 12, best_difficulty: 0.002, last_share_worker: 'cpu-worker-3' }) });
 
         const feed = screen.getByRole('heading', { name: 'Ce qui se passe' }).closest('section');
-        expect(within(feed).getByText(/12 preuves de travail validées par le pool/)).toBeTruthy();
+        expect(within(feed).getByText('Preuve de travail validée par le pool · cpu-worker-3')).toBeTruthy();
         expect(within(feed).getByText(/Nouveau record : votre meilleur essai monte à 0.0020/)).toBeTruthy();
         expect(within(feed).getByText(/Connecté au pool solo.ckpool.org/)).toBeTruthy();
     });

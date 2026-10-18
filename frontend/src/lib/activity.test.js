@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { plain } from './testUtils.js';
 import { FEED_LIMIT, makeEvent, pushEvent, deriveEvents, describeEvent } from './activity.js';
 import { createTranslator } from '../i18n/index.js';
 
@@ -13,26 +12,10 @@ describe('pushEvent', () => {
         expect(feed.map((e) => e.key)).toEqual(['feedBlockLoaded', 'feedConnected']);
     });
 
-    it('merges share events that arrive in quick succession', () => {
-        let feed = pushEvent([], makeEvent('shares', 'feedShares', { count: 12 }, T0));
-        feed = pushEvent(feed, makeEvent('shares', 'feedShares', { count: 8 }, T0 + 5000));
-        expect(feed).toHaveLength(1);
-        expect(feed[0].params.count).toBe(20);
-        expect(feed[0].ts).toBe(T0 + 5000);
-    });
-
-    it('starts a new share entry once the merge window has passed', () => {
-        let feed = pushEvent([], makeEvent('shares', 'feedShares', { count: 12 }, T0));
-        feed = pushEvent(feed, makeEvent('shares', 'feedShares', { count: 8 }, T0 + 31000));
-        expect(feed).toHaveLength(2);
-        expect(feed[0].params.count).toBe(8);
-    });
-
-    it('does not merge shares across a different event in between', () => {
-        let feed = pushEvent([], makeEvent('shares', 'feedShares', { count: 1 }, T0));
-        feed = pushEvent(feed, makeEvent('info', 'feedBlockLoaded', { height: 5 }, T0 + 1000));
-        feed = pushEvent(feed, makeEvent('shares', 'feedShares', { count: 1 }, T0 + 2000));
-        expect(feed.map((e) => e.kind)).toEqual(['shares', 'info', 'shares']);
+    it('keeps every proof of work as its own line', () => {
+        let feed = pushEvent([], makeEvent('share', 'feedShare', { worker: 'cpu-worker-1' }, T0));
+        feed = pushEvent(feed, makeEvent('share', 'feedShare', { worker: 'cpu-worker-3' }, T0 + 1000));
+        expect(feed.map((e) => e.params.worker)).toEqual(['cpu-worker-3', 'cpu-worker-1']);
     });
 
     it('replaces a recent record with the newer one', () => {
@@ -65,17 +48,20 @@ describe('deriveEvents', () => {
         const prev = { connected: false, accepted_shares: 0, best_difficulty: 0, block_height: 0 };
         const next = { connected: true, accepted_shares: 3, best_difficulty: 0.002, block_height: 952143 };
         const events = deriveEvents(prev, next, { pool: 'solo.ckpool.org' }, T0);
-        expect(events.map((e) => e.key)).toEqual(['feedConnected', 'feedBlockLoaded', 'feedShares', 'feedRecord']);
+        expect(events.map((e) => e.key)).toEqual(['feedConnected', 'feedBlockLoaded', 'feedShare', 'feedRecord']);
         expect(events[0].params.pool).toBe('solo.ckpool.org');
         expect(events[1].params.height).toBe(952143);
-        expect(events[2].params.count).toBe(3);
         expect(events[3].params.value).toBe(0.002);
     });
 
-    it('reports only the delta of newly validated proofs', () => {
-        const events = deriveEvents(base, { ...base, accepted_shares: 17 });
+    it('names the worker that found the latest proof', () => {
+        const events = deriveEvents(base, { ...base, accepted_shares: 11, last_share_worker: 'cpu-worker-3' });
         expect(events).toHaveLength(1);
-        expect(events[0].params.count).toBe(7);
+        expect(events[0].params.worker).toBe('cpu-worker-3');
+    });
+
+    it('writes one line per update even when several proofs arrived at once', () => {
+        expect(deriveEvents(base, { ...base, accepted_shares: 17 })).toHaveLength(1);
     });
 
     it('ignores counters going down (stats reset)', () => {
@@ -93,27 +79,26 @@ describe('describeEvent', () => {
     const tFr = createTranslator('fr');
     const tEn = createTranslator('en');
 
-    it('uses the singular for one validated proof', () => {
-        expect(describeEvent(makeEvent('shares', 'feedShares', { count: 1 }), tFr, 'fr')).toBe(
-            'Preuve de travail validée par le pool'
-        );
+    it('writes a proof of work with the worker that found it', () => {
+        const event = makeEvent('share', 'feedShare', { worker: 'cpu-worker-3' });
+        expect(describeEvent(event, tFr)).toBe('Preuve de travail validée par le pool · cpu-worker-3');
+        expect(describeEvent(event, tEn)).toBe('Proof of work validated by the pool · cpu-worker-3');
     });
 
-    it('formats the proof count per language', () => {
-        const event = makeEvent('shares', 'feedShares', { count: 1234 });
-        expect(plain(describeEvent(event, tFr, 'fr'))).toBe('1 234 preuves de travail validées par le pool');
-        expect(describeEvent(event, tEn, 'en')).toBe('1,234 proofs of work validated by the pool');
+    it('still writes the line when the source does not say which worker', () => {
+        const event = makeEvent('share', 'feedShare', { worker: '' });
+        expect(describeEvent(event, tFr)).toBe('Preuve de travail validée par le pool');
     });
 
     it('shows a record with four decimals', () => {
-        expect(describeEvent(makeEvent('record', 'feedRecord', { value: 0.01294 }), tFr, 'fr')).toBe(
+        expect(describeEvent(makeEvent('record', 'feedRecord', { value: 0.01294 }), tFr)).toBe(
             'Nouveau record : votre meilleur essai monte à 0.0129'
         );
     });
 
     it('translates parameterised messages', () => {
         const event = makeEvent('info', 'feedBlockLoaded', { height: 952143 });
-        expect(describeEvent(event, tEn, 'en')).toBe(
+        expect(describeEvent(event, tEn)).toBe(
             'Bitcoin block #952143 fetched: this is the one you are trying to validate'
         );
     });

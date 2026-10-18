@@ -201,3 +201,17 @@ func TestStatsRestoreRejectsGet(t *testing.T) {
 		t.Fatalf("expected 405, got %d", rec.Code)
 	}
 }
+
+func TestStatsPayloadNamesTheWorkerOfTheLatestShare(t *testing.T) {
+	t.Setenv("DATA_DIR", t.TempDir())
+	s := newTestServer(t)
+	if _, ok := s.buildStatsPayload()["last_share_worker"]; ok {
+		t.Fatal("no share yet: no worker to name")
+	}
+
+	s.stats.AddShare(1, "cpu-worker-1", "job", "n1", 1, true)
+	s.stats.AddShare(2, "cpu-worker-2", "job", "n2", 1, true)
+	if got := s.buildStatsPayload()["last_share_worker"]; got != "cpu-worker-2" {
+		t.Fatalf("expected the latest share's worker, got %v", got)
+	}
+}
