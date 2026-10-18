@@ -204,6 +204,9 @@ export function useMiningSession({ notify, t }) {
         }
     }, [post, notify, t, addFeedEvent]);
 
+    // Skips the wait before the backend's next pool reconnection attempt.
+    const retryPool = useCallback(() => post('/pool/retry', {}).catch(() => {}), [post]);
+
     // Asks the demo engine to fetch the current Bitcoin block again.
     const retryNetworkBlock = useCallback(() => post('/network/refresh', {}).catch(() => {}), [post]);
 
@@ -216,6 +219,18 @@ export function useMiningSession({ notify, t }) {
     const poolConnected = Boolean(stats?.connected);
     const poolLost = useSustained(serverReachable && running && stats != null && !poolConnected, OUTAGE_DELAY_MS);
     const serverLost = useSustained(!serverReachable, OUTAGE_DELAY_MS);
+
+    // How the pool connection is doing, as reported by the backend or the demo engine.
+    const poolHealth = useMemo(
+        () => ({
+            reconnects: stats?.pool_reconnects ?? 0,
+            lastError: stats?.pool_last_error || '',
+            retryInSeconds: stats?.pool_retry_in_seconds > 0 ? stats.pool_retry_in_seconds : 0,
+            lastJobAgeSeconds: stats?.pool_last_job_age_seconds ?? null,
+            lastJobId: stats?.pool_last_job_id || '',
+        }),
+        [stats]
+    );
 
     const connection = useMemo(() => {
         if (!serverReachable) return { tone: 'error', labelKey: 'sideServerLost' };
@@ -252,6 +267,7 @@ export function useMiningSession({ notify, t }) {
         pool,
         sessionSeconds,
         connection,
+        poolHealth,
         poolLost,
         serverLost,
         blockFallback: IS_DEMO && stats?.block_source === 'fallback',
@@ -263,6 +279,7 @@ export function useMiningSession({ notify, t }) {
             addWorker,
             removeWorker,
             resetStats,
+            retryPool,
             retryNetworkBlock,
             reconnect,
             dismissFoundBlock,

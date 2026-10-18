@@ -92,6 +92,24 @@ type Client struct {
 
 	// Map to store pending requests and their response channels
 	pendingRequests sync.Map // map[int]chan Response
+
+	// Connection health, surfaced to the dashboard (see Health).
+	reconnects  int       // successful automatic reconnections
+	lastError   string    // last connection error, cleared once reconnected
+	nextRetryAt time.Time // when the pending reconnect attempt fires; zero if none
+	lastJobAt   time.Time // when the pool last sent a job
+	lastJobID   string
+	retryNow    chan struct{} // wakes a waiting reconnect attempt immediately
+}
+
+// Health is a snapshot of how the pool connection is doing.
+type Health struct {
+	Reconnects  int           // successful automatic reconnections so far
+	LastError   string        // last connection error ("" when connected)
+	NextRetryIn time.Duration // time until the next reconnect attempt; 0 if none is pending
+	HasJob      bool          // whether the pool has sent any job yet
+	LastJobAge  time.Duration // time since the last job
+	LastJobID   string
 }
 
 // NewClient creates a new Stratum client
@@ -101,7 +119,42 @@ func NewClient(poolURL string, poolPort int) *Client {
 		poolPort:   poolPort,
 		difficulty: 1,
 		shutdown:   make(chan struct{}),
+		retryNow:   make(chan struct{}, 1),
 	}
+}
+
+// Health returns a snapshot of the connection health.
+func (c *Client) Health() Health {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	h := Health{Reconnects: c.reconnects, LastError: c.lastError, LastJobID: c.lastJobID}
+	if !c.nextRetryAt.IsZero() {
+		if wait := time.Until(c.nextRetryAt); wait > 0 {
+			h.NextRetryIn = wait
+		}
+	}
+	if !c.lastJobAt.IsZero() {
+		h.HasJob = true
+		h.LastJobAge = time.Since(c.lastJobAt)
+	}
+	return h
+}
+
+// RetryNow cuts the wait before the next reconnect attempt short. It reports
+// whether an attempt was actually pending.
+func (c *Client) RetryNow() bool {
+	c.mu.RLock()
+	waiting := !c.nextRetryAt.IsZero()
+	c.mu.RUnlock()
+	if !waiting {
+		return false
+	}
+	select {
+	case c.retryNow <- struct{}{}:
+	default: // a wake-up is already queued
+	}
+	return true
 }
 
 // SetJobCallback sets the callback for new jobs
@@ -359,6 +412,9 @@ func (c *Client) readLoop() {
 			closing := c.closing
 			autoReconnect := c.autoReconnect
 			onDisconnected := c.onDisconnected
+			if !closing {
+				c.lastError = err.Error()
+			}
 			c.mu.Unlock()
 
 			if onDisconnected != nil {
@@ -394,10 +450,20 @@ func (c *Client) reconnectLoop() {
 		}
 
 		log.Printf("Stratum: reconnecting to pool in %s...", backoff)
-		time.Sleep(backoff)
+		c.mu.Lock()
+		c.nextRetryAt = time.Now().Add(backoff)
+		c.mu.Unlock()
+		select {
+		case <-time.After(backoff):
+		case <-c.retryNow:
+		}
+		c.mu.Lock()
+		c.nextRetryAt = time.Time{}
+		c.mu.Unlock()
 
 		if err := c.Connect(); err != nil {
 			log.Printf("Stratum: reconnect failed: %v", err)
+			c.setLastError(err)
 			backoff *= 2
 			if backoff > maxBackoff {
 				backoff = maxBackoff
@@ -407,6 +473,7 @@ func (c *Client) reconnectLoop() {
 
 		if err := c.Subscribe(); err != nil {
 			log.Printf("Stratum: re-subscribe failed: %v", err)
+			c.setLastError(err)
 			c.closeConn()
 			continue
 		}
@@ -415,14 +482,25 @@ func (c *Client) reconnectLoop() {
 		if wallet != "" {
 			if err := c.Authorize(wallet, password); err != nil {
 				log.Printf("Stratum: re-authorize failed: %v", err)
+				c.setLastError(err)
 				c.closeConn()
 				continue
 			}
 		}
 
 		log.Printf("Stratum: reconnected to pool")
+		c.mu.Lock()
+		c.reconnects++
+		c.lastError = ""
+		c.mu.Unlock()
 		return
 	}
+}
+
+func (c *Client) setLastError(err error) {
+	c.mu.Lock()
+	c.lastError = err.Error()
+	c.mu.Unlock()
 }
 
 // closeConn tears down only the transport (used between reconnect attempts)
@@ -565,6 +643,8 @@ func (c *Client) handleMiningNotify(params json.RawMessage) {
 
 	c.mu.Lock()
 	c.currentJob = job
+	c.lastJobAt = time.Now()
+	c.lastJobID = job.ID
 	onJobReceived := c.onJobReceived
 	c.mu.Unlock()
 

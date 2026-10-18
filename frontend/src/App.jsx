@@ -176,7 +176,9 @@ export default function App() {
                         t={t}
                     />
 
-                    {!showWelcome && <StateBanners t={t} session={session} backgroundNotice={backgroundNotice} />}
+                    {!showWelcome && (
+                        <StateBanners t={t} session={session} backgroundNotice={backgroundNotice} advanced={advanced} />
+                    )}
 
                     {showWelcome && (
                         <WelcomeScreen

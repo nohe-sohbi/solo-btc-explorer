@@ -11,7 +11,7 @@ export default function WorkersCard({ t, workers, running, defaultCount, onAdd, 
             <div className="panel__header">
                 <div className="panel__heading">
                     <h2 className="panel__title">
-                        {t('workersTitle')} <span className="panel__count">{t('workersActive', { n: activeCount })}</span>
+                        {t('workersTitle')} <span className="panel__count">{t(activeCount === 1 ? 'workersActiveOne' : 'workersActive', { n: activeCount })}</span>
                     </h2>
                     <p className="panel__subtitle">{t('workersHelp')}</p>
                 </div>

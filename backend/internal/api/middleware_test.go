@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bufio"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -86,5 +88,50 @@ func TestServerHandlerRecoversAcrossFullChain(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "Internal Server Error") {
 		t.Fatalf("body = %q, want a 500 message", rec.Body.String())
+	}
+}
+
+// hijackableWriter is a ResponseWriter that supports connection takeover, like
+// the real server's.
+type hijackableWriter struct {
+	*httptest.ResponseRecorder
+	hijacked bool
+}
+
+func (h *hijackableWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h.hijacked = true
+	return nil, nil, nil
+}
+
+func TestStatusRecorderStillAllowsWebSocketUpgrades(t *testing.T) {
+	inner := &hijackableWriter{ResponseRecorder: httptest.NewRecorder()}
+	rec := &statusRecorder{ResponseWriter: inner}
+
+	if _, _, err := rec.Hijack(); err != nil {
+		t.Fatalf("Hijack through the recorder failed: %v", err)
+	}
+	if !inner.hijacked {
+		t.Fatal("the underlying writer was not asked to hijack")
+	}
+	if rec.status != http.StatusSwitchingProtocols {
+		t.Fatalf("expected the upgrade to be logged as 101, got %d", rec.status)
+	}
+}
+
+func TestStatusRecorderHijackFailsCleanlyWhenUnsupported(t *testing.T) {
+	rec := &statusRecorder{ResponseWriter: httptest.NewRecorder()}
+	if _, _, err := rec.Hijack(); err == nil {
+		t.Fatal("expected an error when the underlying writer cannot hijack")
+	}
+}
+
+func TestLoggingMiddlewareKeepsWebSocketHandlersWorking(t *testing.T) {
+	var sawHijacker bool
+	handler := loggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, sawHijacker = w.(http.Hijacker)
+	}))
+	handler.ServeHTTP(&hijackableWriter{ResponseRecorder: httptest.NewRecorder()}, httptest.NewRequest(http.MethodGet, "/ws", nil))
+	if !sawHijacker {
+		t.Fatal("handlers behind the logging middleware must still see an http.Hijacker (required by /ws)")
 	}
 }

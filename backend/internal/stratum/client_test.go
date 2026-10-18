@@ -2,6 +2,7 @@ package stratum
 
 import (
 	"testing"
+	"time"
 )
 
 func TestNextIDIncrements(t *testing.T) {
@@ -115,4 +116,62 @@ func TestErrorResponseIgnored(t *testing.T) {
 	if c.IsAuthorized() {
 		t.Fatalf("client should not be authorized after an error response")
 	}
+}
+
+func TestHealthStartsClean(t *testing.T) {
+	h := NewClient("localhost", 3333).Health()
+	if h.Reconnects != 0 || h.LastError != "" || h.NextRetryIn != 0 || h.HasJob {
+		t.Fatalf("fresh client should report a clean health, got %+v", h)
+	}
+}
+
+func TestHealthTracksLastJob(t *testing.T) {
+	c := NewClient("localhost", 3333)
+	c.handleMessage([]byte(`{"id":null,"method":"mining.notify","params":["jobid","prev","cb1","cb2",["m1"],"20000000","1d00ffff","5f000000",true]}`))
+
+	h := c.Health()
+	if !h.HasJob || h.LastJobID != "jobid" {
+		t.Fatalf("expected the last job to be reported, got %+v", h)
+	}
+	if h.LastJobAge < 0 || h.LastJobAge > time.Minute {
+		t.Fatalf("unexpected job age %s", h.LastJobAge)
+	}
+}
+
+func TestHealthReportsPendingRetry(t *testing.T) {
+	c := NewClient("localhost", 3333)
+	c.mu.Lock()
+	c.nextRetryAt = time.Now().Add(8 * time.Second)
+	c.lastError = "i/o timeout"
+	c.mu.Unlock()
+
+	h := c.Health()
+	if h.NextRetryIn <= 0 || h.NextRetryIn > 8*time.Second {
+		t.Fatalf("expected a retry within 8s, got %s", h.NextRetryIn)
+	}
+	if h.LastError != "i/o timeout" {
+		t.Fatalf("expected the last error, got %q", h.LastError)
+	}
+}
+
+func TestRetryNowOnlyWhenAnAttemptIsPending(t *testing.T) {
+	c := NewClient("localhost", 3333)
+	if c.RetryNow() {
+		t.Fatal("nothing is pending: RetryNow must report false")
+	}
+
+	c.mu.Lock()
+	c.nextRetryAt = time.Now().Add(time.Minute)
+	c.mu.Unlock()
+	if !c.RetryNow() {
+		t.Fatal("an attempt is pending: RetryNow must report true")
+	}
+	select {
+	case <-c.retryNow:
+	default:
+		t.Fatal("RetryNow should have queued a wake-up")
+	}
+	// A second call must not block even though nobody consumed the first.
+	c.RetryNow()
+	c.RetryNow()
 }

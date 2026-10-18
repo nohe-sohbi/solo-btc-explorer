@@ -37,13 +37,10 @@ export function pushEvent(feed, event, limit = FEED_LIMIT) {
     return [event, ...feed].slice(0, limit);
 }
 
-// describeEvent renders an event as a sentence in the current language. Events of
-// kind 'raw' carry text that was already written by the backend.
+// describeEvent renders an event as a sentence in the current language.
 export function describeEvent(event, t, lang) {
     const { key, params } = event;
     switch (key) {
-        case 'raw':
-            return params.text;
         case 'feedShares':
             return params.count === 1
                 ? t('feedSharesOne')

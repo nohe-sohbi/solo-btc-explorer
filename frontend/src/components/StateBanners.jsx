@@ -3,8 +3,8 @@ import { SUGGESTED_CPU_PERCENT } from '../hooks/useMiningSession.js';
 
 // The situations worth interrupting the user for, in order of severity. Each is
 // rendered only while it holds; the session hook decides when that is.
-export default function StateBanners({ t, session, backgroundNotice }) {
-    const { config, actions } = session;
+export default function StateBanners({ t, session, backgroundNotice, advanced }) {
+    const { config, actions, poolHealth } = session;
 
     return (
         <>
@@ -17,7 +17,31 @@ export default function StateBanners({ t, session, backgroundNotice }) {
                     action={{ label: t('bannerRetry'), onClick: actions.reconnect }}
                 />
             )}
-            {session.poolLost && <StateBanner tone="warn" spinning title={t('bannerPoolTitle')} body={t('bannerPoolBody')} />}
+            {session.poolLost && (
+                <>
+                    <StateBanner
+                        tone="warn"
+                        spinning
+                        title={t('bannerPoolTitle')}
+                        body={
+                            poolHealth.retryInSeconds > 0
+                                ? t('bannerPoolBodyRetry', { seconds: poolHealth.retryInSeconds })
+                                : t('bannerPoolBody')
+                        }
+                        action={
+                            poolHealth.retryInSeconds > 0
+                                ? { label: t('bannerPoolRetry'), onClick: actions.retryPool }
+                                : undefined
+                        }
+                    />
+                    {advanced && poolHealth.lastError && (
+                        <div className="banner-detail">
+                            <div className="banner-detail__label">{t('bannerAdvancedOnly')}</div>
+                            <code className="banner-detail__code">{t('bannerPoolDetail', { error: poolHealth.lastError })}</code>
+                        </div>
+                    )}
+                </>
+            )}
             {session.blockFallback && (
                 <StateBanner
                     tone="error"

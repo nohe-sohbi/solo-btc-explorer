@@ -869,6 +869,27 @@
     flex: 1 1 260px;
 }
 
+.banner-detail {
+    margin-top: -8px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+}
+
+.banner-detail__label {
+    color: var(--text-muted);
+    font-size: 12.5px;
+}
+
+.banner-detail__code {
+    display: block;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    word-break: break-word;
+}
+
 .banner__action {
     height: 38px;
     padding: 0 16px;

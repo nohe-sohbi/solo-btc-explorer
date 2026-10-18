@@ -38,7 +38,7 @@ export default function DashboardScreen({ t, lang, theme, session, advanced, onN
 
             {advanced && (
                 <div className="pair">
-                    <PoolPanel t={t} lang={lang} stats={stats} pool={session.pool} running={running} />
+                    <PoolPanel t={t} lang={lang} stats={stats} pool={session.pool} running={running} health={session.poolHealth} />
                     <SupervisionPanel t={t} />
                 </div>
             )}

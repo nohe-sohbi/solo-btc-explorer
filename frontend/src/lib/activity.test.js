@@ -95,7 +95,7 @@ describe('describeEvent', () => {
 
     it('uses the singular for one validated proof', () => {
         expect(describeEvent(makeEvent('shares', 'feedShares', { count: 1 }), tFr, 'fr')).toBe(
-            '1 preuve de travail validée par le pool'
+            'Preuve de travail validée par le pool'
         );
     });
 
@@ -109,11 +109,6 @@ describe('describeEvent', () => {
         expect(describeEvent(makeEvent('record', 'feedRecord', { value: 0.01294 }), tFr, 'fr')).toBe(
             'Nouveau record : votre meilleur essai monte à 0.0129'
         );
-    });
-
-    it('passes raw backend text through untouched', () => {
-        const event = makeEvent('info', 'raw', { text: 'job 4f2a received' });
-        expect(describeEvent(event, tFr, 'fr')).toBe('job 4f2a received');
     });
 
     it('translates parameterised messages', () => {

@@ -448,7 +448,7 @@
 }
 
 .stat-cell {
-    flex: 1 1 200px;
+    flex: 1 1 248px; /* 200px of content + the cell padding, as in the mockup */
     padding: 16px 24px;
 }
 

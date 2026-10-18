@@ -1,6 +1,5 @@
 import { IS_DEMO } from '../config/runtime.js';
 import { useServerProbes } from '../hooks/useServerProbes.js';
-import { formatUptime } from '../lib/format.js';
 import { formatInteger } from '../lib/bigNumbers.js';
 
 // The "advanced view" cards for whoever runs the app: pool connection details
@@ -24,14 +23,23 @@ function Fact({ label, children }) {
     );
 }
 
-export function PoolPanel({ t, lang, stats, pool, running }) {
-    let statusKey = 'advStatusOff';
+// "12 s ago" / "3 min ago", from a whole number of seconds.
+function formatAgo(seconds, t) {
+    return seconds < 120 ? t('advAgoSeconds', { n: seconds }) : t('advAgoMinutes', { n: Math.floor(seconds / 60) });
+}
+
+export function PoolPanel({ t, lang, stats, pool, running, health }) {
+    let statusKey = running ? 'advStatusReconnecting' : 'advStatusOff';
     if (running && stats?.connected) statusKey = stats.authorized ? 'advStatusOk' : 'advStatusWaiting';
 
     const accepted = stats?.accepted_shares || 0;
     const rejected = stats?.rejected_shares || 0;
     const total = accepted + rejected;
     const shares = `${formatInteger(accepted, lang)} / ${formatInteger(rejected, lang)}`;
+    const lastJob =
+        health.lastJobAgeSeconds === null
+            ? '—'
+            : [formatAgo(health.lastJobAgeSeconds, t), health.lastJobId && `${health.lastJobId}…`].filter(Boolean).join(' · ');
     const acceptedRate = total > 0 ? ` · ${formatInteger(Math.round((accepted / total) * 100), lang)} %` : '';
 
     return (
@@ -42,35 +50,35 @@ export function PoolPanel({ t, lang, stats, pool, running }) {
                 <Fact label={t('advStatus')}>
                     <span className={statusKey === 'advStatusOk' ? 'text-success' : 'text-muted'}>{t(statusKey)}</span>
                 </Fact>
+                <Fact label={t('advLastJob')}>{lastJob}</Fact>
+                <Fact label={t('advReconnects')}>{formatInteger(health.reconnects, lang)}</Fact>
                 <Fact label={t('advShares')}>{shares + acceptedRate}</Fact>
-                <Fact label={t('advMiningTime')}>{formatUptime(stats?.uptime_seconds)}</Fact>
             </dl>
         </section>
     );
 }
 
 const PROBE_LABEL_KEYS = {
-    health: { ok: 'advProbeOk', down: 'advProbeDown', checking: 'advProbeChecking' },
-    ready: { ok: 'advProbeReady', down: 'advProbeNotReady', checking: 'advProbeChecking' },
+    health: { ok: 'advProbeOk', down: 'advProbeDown', checking: 'advProbeChecking', demo: 'advProbeDemo' },
+    ready: { ok: 'advProbeReady', down: 'advProbeNotReady', checking: 'advProbeChecking', demo: 'advProbeDemo' },
 };
 
+const PROBE_TONES = { ok: 'ok', down: 'danger', checking: 'idle', demo: 'idle' };
+
 function ProbeChip({ kind, state, t }) {
-    return (
-        <span className={`status-pill status-pill--${state === 'ok' ? 'ok' : state === 'down' ? 'danger' : 'idle'}`}>
-            {t(PROBE_LABEL_KEYS[kind][state])}
-        </span>
-    );
+    return <span className={`status-pill status-pill--${PROBE_TONES[state]}`}>{t(PROBE_LABEL_KEYS[kind][state])}</span>;
 }
 
-function ServerProbes({ t }) {
-    const probes = useServerProbes(true);
+// The monitoring endpoints, with the live state of the two probes. In the demo
+// there is no server behind them, so the probes are marked as not applicable.
+function MonitoringRows({ t, health, ready }) {
     return (
         <dl className="facts">
             <Fact label={<code>/healthz</code>}>
-                <ProbeChip kind="health" state={probes.health} t={t} />
+                <ProbeChip kind="health" state={health} t={t} />
             </Fact>
             <Fact label={<code>/readyz</code>}>
-                <ProbeChip kind="ready" state={probes.ready} t={t} />
+                <ProbeChip kind="ready" state={ready} t={t} />
             </Fact>
             <Fact label={<a href="/metrics" target="_blank" rel="noreferrer"><code>/metrics</code></a>}>
                 {t('advEndpointMetrics')}
@@ -85,11 +93,23 @@ function ServerProbes({ t }) {
     );
 }
 
+function LiveMonitoring({ t }) {
+    const probes = useServerProbes(true);
+    return <MonitoringRows t={t} health={probes.health} ready={probes.ready} />;
+}
+
 export function SupervisionPanel({ t }) {
     return (
         <section className="card panel">
             <PanelHeader title={t('advSupervisionTitle')} t={t} />
-            {IS_DEMO ? <p className="panel__empty">{t('advSupervisionDemo')}</p> : <ServerProbes t={t} />}
+            {IS_DEMO ? (
+                <>
+                    <MonitoringRows t={t} health="demo" ready="demo" />
+                    <p className="panel__footnote">{t('advSupervisionDemo')}</p>
+                </>
+            ) : (
+                <LiveMonitoring t={t} />
+            )}
         </section>
     );
 }

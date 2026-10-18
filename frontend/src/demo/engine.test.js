@@ -100,6 +100,20 @@ describe('DemoEngine block candidates', () => {
 });
 
 describe('DemoEngine stats payload', () => {
+    it('reports the current block as the last job the "pool" sent', async () => {
+        fetchLatestBlock.mockResolvedValue(LIVE_BLOCK);
+        const engine = new DemoEngine();
+        await engine.ensureBlock();
+        const payload = engine.buildStatsPayload();
+        expect(payload).toMatchObject({ pool_reconnects: 0, pool_last_job_id: 'ive-id' });
+        expect(payload.pool_last_job_age_seconds).toBeGreaterThanOrEqual(0);
+    });
+
+    it('has no last job before a block was received', () => {
+        const payload = new DemoEngine().buildStatsPayload();
+        expect(payload).not.toHaveProperty('pool_last_job_age_seconds');
+    });
+
     it('derives rejected shares from the counters', () => {
         const engine = new DemoEngine();
         engine.totalShares = 10;

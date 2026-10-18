@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { IS_DEMO } from '../config/runtime.js';
 import { makeEvent, pushEvent, deriveEvents } from '../lib/activity.js';
 
 // useActivityFeed builds the "what's happening" stream from three sources:
 //   1. changes between consecutive stats snapshots (connection, new block, proofs, records);
-//   2. WebSocket events (a found block; the backend's own log lines);
+//   2. WebSocket events (a found block);
 //   3. user actions pushed explicitly through the returned `add` function.
 // Returns [feed, add] where the feed is newest-first.
 export function useActivityFeed({ stats, lastMessage, pool }) {
@@ -26,12 +25,11 @@ export function useActivityFeed({ stats, lastMessage, pool }) {
 
     useEffect(() => {
         if (!lastMessage) return;
+        // The backend also streams English log lines; they repeat what the stats
+        // already tell (connection changes) so only a found block is taken from here.
         if (lastMessage.type === 'block') {
             const worker = lastMessage.data?.worker_name;
             add('block', worker ? 'feedBlockFound' : 'feedBlockFoundAnon', { worker });
-        } else if (!IS_DEMO && lastMessage.type === 'log' && lastMessage.data?.message) {
-            // The backend writes its own (already human-readable) log lines.
-            add('info', 'raw', { text: lastMessage.data.message });
         }
     }, [lastMessage, add]);
 

@@ -219,7 +219,15 @@ describe('dashboard', () => {
         expect(screen.getByText('Connexion au pool')).toBeTruthy();
         expect(screen.getByText('Supervision')).toBeTruthy();
         expect(screen.getByText('113 / 0 · 100 %')).toBeTruthy();
+        expect(screen.getByText('Reconnexions')).toBeTruthy();
         expect(window.localStorage.getItem('soloforge-advanced')).toBe('true');
+    });
+
+    it('shows the last job the pool sent and how long ago', async () => {
+        window.localStorage.setItem('soloforge-advanced', 'true');
+        await renderApp();
+        emit({ stats: runningStats({ pool_last_job_age_seconds: 12, pool_last_job_id: '4f2a9c', pool_reconnects: 2 }) });
+        expect(screen.getByText('il y a 12 s · 4f2a9c…')).toBeTruthy();
     });
 
     it('lets the user add and remove workers', async () => {
@@ -275,6 +283,37 @@ describe('state banners', () => {
 
         emit({ stats: runningStats({ connected: true }) });
         expect(screen.queryByText('Connexion au pool interrompue')).toBeNull();
+    });
+
+    it('tells how long until the next pool attempt and lets the user retry right now', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        await renderApp();
+        emit({ stats: runningStats({ connected: false, pool_retry_in_seconds: 8, pool_last_error: 'dial tcp: i/o timeout' }) });
+        await act(async () => { vi.advanceTimersByTime(4100); });
+
+        expect(screen.getByText(/Nouvelle tentative dans 8 s/)).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', { name: 'Réessayer maintenant' }));
+        expect(backend.api.post).toHaveBeenCalledWith('/pool/retry', {});
+    });
+
+    it('keeps the technical error for the advanced view', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        await renderApp();
+        emit({ stats: runningStats({ connected: false, pool_retry_in_seconds: 8, pool_last_error: 'dial tcp: i/o timeout' }) });
+        await act(async () => { vi.advanceTimersByTime(4100); });
+        expect(screen.queryByText(/dial tcp: i\/o timeout/)).toBeNull();
+
+        fireEvent.click(screen.getByRole('switch', { name: 'Vue avancée' }));
+        expect(screen.getByText(/dernière erreur : dial tcp: i\/o timeout/)).toBeTruthy();
+    });
+
+    it('offers no retry button when no reconnection is scheduled', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        await renderApp();
+        emit({ stats: runningStats({ connected: false }) });
+        await act(async () => { vi.advanceTimersByTime(4100); });
+        expect(screen.getByText('Connexion au pool interrompue')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Réessayer maintenant' })).toBeNull();
     });
 
     it('warns when the server is unreachable and offers a retry', async () => {

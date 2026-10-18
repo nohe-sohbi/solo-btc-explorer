@@ -39,6 +39,7 @@ export class DemoEngine {
 
         this.block = null;          // { header, height, networkDifficulty, id }
         this.blockSource = 'none';  // 'live' (mempool.space) | 'fallback' (bundled block) | 'none'
+        this.blockFetchedAt = 0;    // when the current block was received (the demo's "last job")
         this.blockPromise = null;
         this.priceUSD = 0;          // best-effort BTC/USD, for the odds panel's expected value
 
@@ -135,6 +136,7 @@ export class DemoEngine {
             id: raw.id,
         };
         this.blockSource = live ? 'live' : 'fallback';
+        this.blockFetchedAt = Date.now();
         // Best-effort price so the odds can show expected value; a failure just
         // leaves it at 0 and the USD figures stay hidden.
         if (live) {
@@ -295,6 +297,11 @@ export class DemoEngine {
             block_reward_btc: this.block ? blockSubsidy(this.block.height) : 0,
             btc_price_usd: this.priceUSD,
             block_source: this.blockSource,
+            pool_reconnects: 0,
+            ...(this.block && {
+                pool_last_job_age_seconds: Math.floor((now - this.blockFetchedAt) / 1000),
+                pool_last_job_id: String(this.block.id || '').slice(-6),
+            }),
             workers,
             connected: this.running,
             authorized: this.running,

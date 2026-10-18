@@ -1,7 +1,10 @@
 package api
 
 import (
+	"bufio"
+	"errors"
 	"log"
+	"net"
 	"net/http"
 	"runtime/debug"
 	"time"
@@ -26,6 +29,27 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 	n, err := r.ResponseWriter.Write(b)
 	r.bytes += n
 	return n, err
+}
+
+// Hijack lets WebSocket upgrades (and other connection takeovers) pass through
+// the wrapper. Without it the /ws handshake fails with "response does not
+// implement http.Hijacker" and the dashboard never receives live stats.
+func (r *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := r.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("underlying ResponseWriter does not support hijacking")
+	}
+	if r.status == 0 {
+		r.status = http.StatusSwitchingProtocols
+	}
+	return hijacker.Hijack()
+}
+
+// Flush forwards to the underlying writer so streaming responses still work.
+func (r *statusRecorder) Flush() {
+	if flusher, ok := r.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
 }
 
 // recoverMiddleware turns a panic in any HTTP handler into a 500 response
