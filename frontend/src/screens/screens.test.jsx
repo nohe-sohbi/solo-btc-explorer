@@ -296,4 +296,10 @@ describe('HelpScreen', () => {
         expect(screen.getByText(/jamais de clé privée/)).toBeTruthy();
         expect(screen.getByText('Puis-je vraiment gagner ?')).toBeTruthy();
     });
+
+    it('tells a server install that closing the tab does not stop the mining', () => {
+        render(<HelpScreen t={t} lang="fr" network={network} />);
+        expect(screen.getByText(/le mining continue sur le serveur/)).toBeTruthy();
+        expect(screen.queryByText(/Le mining s'arrête/)).toBeNull();
+    });
 });

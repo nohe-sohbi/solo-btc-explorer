@@ -15,7 +15,7 @@ export default function WorkersCard({ t, workers, running, defaultCount, onAdd, 
                     </h2>
                     <p className="panel__subtitle">{t('workersHelp')}</p>
                 </div>
-                <button type="button" className="btn btn--accent-soft btn--sm" onClick={onAdd} disabled={!running}>
+                <button type="button" className="btn btn--accent-soft btn--xs" onClick={onAdd} disabled={!running}>
                     {t('workersAdd')}
                 </button>
             </div>

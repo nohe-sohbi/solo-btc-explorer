@@ -1,4 +1,4 @@
-import Icon from '../components/Icon.jsx';
+import { IS_DEMO } from '../config/runtime.js';
 import { formatSi } from '../lib/format.js';
 
 // Glossary entries: i18n keys for the term, an optional "also known as" and the
@@ -18,14 +18,14 @@ const SAFETY_DONTS = ['safetyDont1', 'safetyDont2'];
 const FAQ = [
     { question: 'faqWinQ', answer: 'faqWinA' },
     { question: 'faqHeatQ', answer: 'faqHeatA' },
-    { question: 'faqCloseQ', answer: 'faqCloseA' },
+    { question: 'faqCloseQ', answer: IS_DEMO ? 'faqCloseADemo' : 'faqCloseAServer' },
 ];
 
 // Vocabulary, reassurance and answers to the usual questions, in plain language.
 export default function HelpScreen({ t, lang, network }) {
     return (
         <>
-            <section className="card panel">
+            <section className="card panel panel--roomy">
                 <h2 className="panel__title">{t('glossaryTitle')}</h2>
                 <dl className="glossary">
                     {GLOSSARY.map((entry) => (
@@ -46,13 +46,13 @@ export default function HelpScreen({ t, lang, network }) {
                     <ul className="safety-list">
                         {SAFETY_DOS.map((key) => (
                             <li key={key}>
-                                <Icon name="check" size={16} className="safety-list__yes" />
+                                <span className="safety-list__yes" aria-hidden="true">✓</span>
                                 {t(key)}
                             </li>
                         ))}
                         {SAFETY_DONTS.map((key) => (
                             <li key={key}>
-                                <Icon name="close" size={16} className="safety-list__no" />
+                                <span className="safety-list__no" aria-hidden="true">✕</span>
                                 {t(key)}
                             </li>
                         ))}

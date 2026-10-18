@@ -23,7 +23,7 @@ const PATHS = {
 // Solid glyphs are filled instead of stroked.
 const FILLED = new Set(['stop', 'play']);
 
-export default function Icon({ name, size = 18, className }) {
+export default function Icon({ name, size = 18, strokeWidth = 1.8, className }) {
     const filled = FILLED.has(name);
     return (
         <svg
@@ -33,7 +33,7 @@ export default function Icon({ name, size = 18, className }) {
             viewBox="0 0 24 24"
             fill={filled ? 'currentColor' : 'none'}
             stroke={filled ? 'none' : 'currentColor'}
-            strokeWidth="1.8"
+            strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"

@@ -2,7 +2,6 @@ import { useState, useId } from 'react';
 import Icon from '../components/Icon.jsx';
 import Rich from '../components/Rich.jsx';
 import WalletField from '../components/WalletField.jsx';
-import { IS_DEMO } from '../config/runtime.js';
 import { checkWallet } from '../lib/walletCheck.js';
 import { computeOdds } from '../lib/odds.js';
 import { formatOneIn } from '../lib/oddsFormat.js';
@@ -128,7 +127,6 @@ export default function ConfigScreen({ t, lang, session, onRequestReset, onNavig
                                 onChange={(value) => update('pool_port', parseInt(value, 10) || 0)}
                             />
                         </div>
-                        {running && <LockedNote>{t('cfgLockedPool')}</LockedNote>}
                     </section>
 
                     <section className="card panel">
@@ -181,19 +179,19 @@ export default function ConfigScreen({ t, lang, session, onRequestReset, onNavig
 
                     <section className="card panel">
                         <h2 className="panel__title">{t('cfgDataTitle')}</h2>
-                        <p className="panel__subtitle">{t(IS_DEMO ? 'cfgDataSubDemo' : 'cfgDataSubServer')}</p>
+                        <p className="panel__subtitle">{t('cfgDataSub')}</p>
                         <div className="button-row">
-                            <button type="button" className="btn btn--outline btn--sm" onClick={() => exportAll('csv')}>
+                            <button type="button" className="btn btn--outline btn--md" onClick={() => exportAll('csv')}>
                                 {t('cfgExportCsv')}
                             </button>
-                            <button type="button" className="btn btn--outline btn--sm" onClick={() => exportAll('json')}>
+                            <button type="button" className="btn btn--outline btn--md" onClick={() => exportAll('json')}>
                                 {t('cfgExportJson')}
                             </button>
                         </div>
                         <div className="danger-zone">
                             <div className="danger-zone__title">{t('cfgDangerTitle')}</div>
                             <p className="danger-zone__text">{t('cfgDangerText')}</p>
-                            <button type="button" className="btn btn--danger-soft btn--sm" onClick={onRequestReset}>
+                            <button type="button" className="btn btn--danger-soft btn--md" onClick={onRequestReset}>
                                 {t('cfgReset')}
                             </button>
                         </div>

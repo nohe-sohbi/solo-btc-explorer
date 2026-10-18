@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Art from '../components/Art.jsx';
+import Icon from '../components/Icon.jsx';
 import Rich from '../components/Rich.jsx';
 import WalletField from '../components/WalletField.jsx';
 import { LedgerIllustration, PuzzleIllustration, RewardIllustration } from '../components/Illustrations.jsx';
@@ -54,7 +55,10 @@ export default function WelcomeScreen({ t, lang, theme, network, savedWallet, on
                     </p>
                     <ul className="check-list">
                         {['welcomeReassure1', 'welcomeReassure2', 'welcomeReassure3'].map((key) => (
-                            <li key={key}>{t(key)}</li>
+                            <li key={key}>
+                                <Icon name="check" size={16} strokeWidth={2.4} className="check-list__icon" />
+                                {t(key)}
+                            </li>
                         ))}
                     </ul>
                     <div className="hero__actions">

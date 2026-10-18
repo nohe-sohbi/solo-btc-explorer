@@ -75,6 +75,30 @@ describe('DemoEngine block source', () => {
     });
 });
 
+describe('DemoEngine prefetch', () => {
+    it('fetches the block as soon as someone listens, and announces it', async () => {
+        fetchLatestBlock.mockReset();
+        fetchLatestBlock.mockResolvedValue(LIVE_BLOCK);
+        const engine = new DemoEngine();
+        const seen = [];
+        const unsubscribe = engine.subscribe((event) => seen.push(event));
+        await vi.waitFor(() => expect(seen.some((e) => e.data.block_height === 952143)).toBe(true));
+        unsubscribe();
+        clearInterval(engine.statsTimer);
+    });
+
+    it('fetches only once, however many listeners come', async () => {
+        fetchLatestBlock.mockReset();
+        fetchLatestBlock.mockResolvedValue(LIVE_BLOCK);
+        const engine = new DemoEngine();
+        engine.subscribe(() => {});
+        engine.subscribe(() => {});
+        await engine.ensureBlock();
+        expect(fetchLatestBlock).toHaveBeenCalledTimes(1);
+        clearInterval(engine.statsTimer);
+    });
+});
+
 describe('DemoEngine waiting for a block', () => {
     let engine;
 

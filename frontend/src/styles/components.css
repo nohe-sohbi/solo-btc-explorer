@@ -52,7 +52,7 @@
 }
 
 .status-pill {
-    display: inline-block;
+    display: inline; /* like the mockup: the padding must not stretch the line (table rows) */
     padding: 3px 12px;
     border-radius: var(--radius-pill);
     font-size: 12.5px;
@@ -80,7 +80,7 @@
 }
 
 .badge {
-    display: inline-block;
+    display: inline;
     align-self: flex-start;
     padding: 4px 12px;
     border-radius: var(--radius-pill);
@@ -160,15 +160,30 @@
     font-weight: 500;
 }
 
+.btn--xs {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
 .btn--sm {
     height: 34px;
     padding: 0 14px;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.btn--md {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 9px;
     font-size: 13.5px;
 }
 
 .btn--lg {
     height: 48px;
-    padding: 0 26px;
+    padding: 0 24px;
     font-size: 15px;
     border-radius: 12px;
 }
@@ -193,7 +208,7 @@
 
 .link-button--block {
     display: block;
-    margin-top: 14px;
+    margin-top: 10px;
     font-size: 13.5px;
     font-weight: 600;
 }
@@ -312,6 +327,10 @@
     padding: 22px 24px;
 }
 
+.panel--roomy {
+    padding: 24px;
+}
+
 .panel--accent {
     border-color: var(--accent-line);
 }
@@ -378,7 +397,7 @@
 }
 
 .note {
-    margin-top: 14px;
+    margin-top: 12px;
     padding: 10px 14px;
     border-radius: var(--radius-control);
     background: var(--panel-2);
@@ -392,6 +411,8 @@
 }
 
 .note--accent {
+    margin-top: 14px;
+    padding: 12px 14px;
     background: var(--accent-bg);
     color: var(--text);
 }
@@ -407,7 +428,7 @@
     justify-content: space-between;
     align-items: baseline;
     gap: 4px 16px;
-    padding: 10px 0;
+    padding: 9px 0;
     border-top: 1px solid var(--line);
     font-size: 13.5px;
 }
@@ -442,6 +463,10 @@
     border: 1px solid var(--line);
     border-radius: 12px;
     padding: 0 16px;
+}
+
+.facts--boxed .facts__row {
+    padding: 10px 0;
 }
 
 .facts--boxed .facts__row:first-child {
@@ -690,7 +715,7 @@
 
 .slider {
     width: 100%;
-    margin: 8px 0 0;
+    margin: 10px 0 0;
     accent-color: var(--accent-fill);
 }
 

@@ -29,7 +29,7 @@
 .hero__content {
     position: relative;
     z-index: 1;
-    flex: 1.2 1 568px;
+    flex: 1.2 1 480px;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -39,7 +39,6 @@
 }
 
 .hero__title {
-    max-width: 570px; /* breaks after "jouait à" like the mockup */
     font-size: 42px;
     font-weight: 600;
     line-height: 1.08;
@@ -61,6 +60,15 @@
 .hero__lead strong {
     color: var(--text);
     font-weight: 600;
+}
+
+.hero__actions .btn--lg {
+    padding: 0 26px;
+    font-size: 15.5px;
+}
+
+.hero__actions .link-button {
+    font-size: 14.5px;
 }
 
 .hero__actions {
@@ -88,14 +96,9 @@
     gap: 8px;
 }
 
-.check-list li::before {
-    content: '';
-    width: 14px;
-    height: 8px;
-    margin-top: -4px;
-    border-left: 2px solid var(--success);
-    border-bottom: 2px solid var(--success);
-    transform: rotate(-45deg) scale(0.9);
+.check-list__icon {
+    flex: none;
+    color: var(--success);
 }
 
 .idea-grid {
@@ -209,7 +212,7 @@
 }
 
 .attempts {
-    flex: 1 1 380px;
+    flex: 1 1 422px; /* 380px of content + padding and border, as in the mockup */
     min-width: 0;
     padding: 18px 20px;
     border: 1px solid var(--line);
@@ -523,7 +526,6 @@
 
 .jackpot-card__explore {
     align-self: flex-start;
-    margin-top: auto;
 }
 
 .jackpot-card .facts {
@@ -531,6 +533,10 @@
 }
 
 /* ----- Simulator ----- */
+.simulator {
+    padding: 24px;
+}
+
 .simulator__readout {
     display: flex;
     flex-wrap: wrap;
@@ -553,7 +559,6 @@
 .simulator__scale {
     display: flex;
     justify-content: space-between;
-    margin-top: 4px;
     color: var(--text-dim);
     font-family: var(--font-mono);
     font-size: 12px;
@@ -627,7 +632,7 @@
 .result__time {
     color: var(--accent);
     font-family: var(--font-mono);
-    font-size: 34px;
+    font-size: 36px;
     font-weight: 500;
     line-height: 1.2;
     letter-spacing: -0.03em;
@@ -662,6 +667,10 @@
 .result__pair dd {
     font-family: var(--font-mono);
     font-size: 17px;
+}
+
+.result .facts__row dd {
+    font-size: 14px;
 }
 
 .result__horizons-title {
@@ -744,9 +753,10 @@
     gap: 10px;
 }
 
-.safety-list svg {
+.safety-list__yes,
+.safety-list__no {
     flex: none;
-    margin-top: 3px;
+    font-weight: 700;
 }
 
 .safety-list__yes {

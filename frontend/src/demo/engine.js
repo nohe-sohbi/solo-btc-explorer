@@ -104,7 +104,16 @@ export class DemoEngine {
     subscribe(cb) {
         this.subscribers.add(cb);
         this._startStatsLoop();
+        this._prefetchBlock();
         return () => this.subscribers.delete(cb);
+    }
+
+    // Fetch the current block (and BTC price) as soon as the page is open, so the
+    // reward in dollars and the odds are known before the visitor starts mining.
+    _prefetchBlock() {
+        if (this.prefetched) return;
+        this.prefetched = true;
+        this.ensureBlock().then(() => this._emit('stats', this.buildStatsPayload()));
     }
 
     _emit(type, data) {

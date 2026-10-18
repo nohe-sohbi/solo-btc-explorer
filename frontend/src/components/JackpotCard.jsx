@@ -48,7 +48,7 @@ export default function JackpotCard({ t, lang, theme, running, hashrate, network
                     <p className="jackpot-card__idle">{t('jackpotIdle')}</p>
                 )}
 
-                <button type="button" className="btn btn--accent-soft btn--sm jackpot-card__explore" onClick={onExplore}>
+                <button type="button" className="btn btn--accent-soft btn--md jackpot-card__explore" onClick={onExplore}>
                     {t('jackpotExplore')}
                 </button>
             </div>
