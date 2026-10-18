@@ -816,14 +816,15 @@
 }
 
 .help-tip__button {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
+    line-height: 1;
     padding: 0;
     border: 1px solid var(--line-strong);
     border-radius: 50%;
     background: transparent;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1;
 }

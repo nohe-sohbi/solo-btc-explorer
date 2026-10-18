@@ -331,6 +331,14 @@
     font-size: 13.5px;
 }
 
+.speed-card__top .stat-cell__label {
+    gap: 8px;
+}
+
+.speed-card__top .stat-cell__title {
+    font-size: 14px;
+}
+
 .stat-cell__title {
     font-weight: 600;
 }
@@ -355,7 +363,7 @@
 }
 
 .speed-card__unit {
-    margin-left: 8px;
+    margin-left: 10px; /* the design sets a space in the 17px mono face */
     color: var(--text-muted);
     font-family: var(--font-mono);
     font-size: 17px;
