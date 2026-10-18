@@ -18,7 +18,7 @@ export default function ActivityCard({ t, lang, feed, onOpenHistory }) {
     const locale = LOCALES[lang] || LOCALES.en;
 
     return (
-        <section className="card panel">
+        <section className="card panel panel--compact">
             <div className="panel__header">
                 <h2 className="panel__title">{t('activityTitle')}</h2>
                 <button type="button" className="link-button link-button--small" onClick={onOpenHistory}>

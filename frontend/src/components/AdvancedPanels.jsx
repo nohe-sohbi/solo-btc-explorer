@@ -43,7 +43,7 @@ export function PoolPanel({ t, lang, stats, pool, running, health }) {
     const acceptedRate = total > 0 ? ` · ${formatInteger(Math.round((accepted / total) * 100), lang)} %` : '';
 
     return (
-        <section className="card panel">
+        <section className="card panel panel--compact">
             <PanelHeader title={t('advPoolTitle')} t={t} />
             <dl className="facts">
                 <Fact label={t('advPool')}>{pool}</Fact>
@@ -106,7 +106,7 @@ function LiveMonitoring({ t }) {
 
 export function SupervisionPanel({ t }) {
     return (
-        <section className="card panel">
+        <section className="card panel panel--compact">
             <PanelHeader title={t('advSupervisionTitle')} t={t} />
             {IS_DEMO ? (
                 <MonitoringRows t={t} health="demo" ready="demo" />

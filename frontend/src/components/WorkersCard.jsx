@@ -7,7 +7,7 @@ export default function WorkersCard({ t, workers, running, defaultCount, onAdd, 
     const activeCount = workers.filter((worker) => worker.running).length;
 
     return (
-        <section className="card panel">
+        <section className="card panel panel--compact">
             <div className="panel__header">
                 <div className="panel__heading">
                     <h2 className="panel__title">

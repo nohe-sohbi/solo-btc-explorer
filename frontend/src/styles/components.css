@@ -332,6 +332,10 @@
     padding: 22px 24px;
 }
 
+.panel--compact {
+    padding: 20px 22px;
+}
+
 .panel--roomy {
     padding: 24px;
 }
@@ -450,6 +454,10 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0;
+}
+
+.facts__row--stacked dt {
+    font-size: 13px;
 }
 
 .facts__row--stacked dd {
