@@ -1,5 +1,6 @@
 import { useState, useId } from 'react';
 import Rich from '../components/Rich.jsx';
+import { IS_DEMO } from '../config/runtime.js';
 import {
     HASHRATE_PRESETS,
     MIN_LOG_HASHRATE,
@@ -81,6 +82,7 @@ export default function ChancesScreen({ t, lang, hashrate, network }) {
     });
 
     const reward = formatReward(network.rewardBTC, lang);
+    const scope = IS_DEMO ? t('howDemoSuffix') : '';
 
     return (
         <>
@@ -190,8 +192,8 @@ export default function ChancesScreen({ t, lang, hashrate, network }) {
                         <Rich
                             text={
                                 network.priceUSD > 0
-                                    ? t('howP3', { reward, price: formatUsdWhole(network.priceUSD, lang) })
-                                    : t('howP3NoPrice', { reward })
+                                    ? t('howP3', { scope, reward, price: formatUsdWhole(network.priceUSD, lang) })
+                                    : t('howP3NoPrice', { scope, reward })
                             }
                         />
                     </p>

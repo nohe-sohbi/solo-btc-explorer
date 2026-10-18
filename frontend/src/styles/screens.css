@@ -671,6 +671,7 @@
 }
 
 .result__pair > div + div {
+    flex-basis: 220px; /* 200px of content + the indent, as in the design */
     padding-left: 20px;
 }
 

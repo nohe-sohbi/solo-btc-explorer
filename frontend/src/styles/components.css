@@ -59,6 +59,12 @@
     font-weight: 600;
 }
 
+.facts .status-pill {
+    display: inline-flex; /* padding counts in the row height, as when the chip is the flex item */
+    vertical-align: top;
+    padding: 2px 10px;
+}
+
 .status-pill--ok {
     background: var(--success-bg);
     color: var(--success);

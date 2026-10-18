@@ -268,8 +268,9 @@ export default {
     howTitle: "How it's computed",
     howP1: "To validate a block you must hit a fingerprint smaller than a threshold set by the network. The **difficulty** (currently `{difficulty}`) says how low that threshold is.",
     howP2: "Average time = `difficulty × 2³² ÷ computing speed`. Doubling the speed halves the time. Each attempt's odds don't depend on previous ones: nothing is \"getting closer\".",
-    howP3: "Network values: reward `{reward} BTC`, price `{price}`, from mempool.space. The machine examples are orders of magnitude.",
-    howP3NoPrice: "Network values: reward `{reward} BTC`, from mempool.space. The machine examples are orders of magnitude.",
+    howDemoSuffix: " (demo)",
+    howP3: "Network values{scope}: reward `{reward} BTC`, price `{price}`, from mempool.space. The machine examples are orders of magnitude.",
+    howP3NoPrice: "Network values{scope}: reward `{reward} BTC`, from mempool.space. The machine examples are orders of magnitude.",
 
     // ----- History -----
     histProofs: "Proofs of work",
