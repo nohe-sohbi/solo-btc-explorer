@@ -233,6 +233,7 @@
     color: var(--text-muted);
     font-size: 13px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .segmented__option.is-selected {
@@ -313,6 +314,11 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
+}
+
+.panel__heading {
+    flex: 1 1 240px;
+    min-width: 0;
 }
 
 .panel__title {
@@ -970,6 +976,10 @@
     margin-top: 10px;
     color: var(--text-muted);
     font-size: 14.5px;
+}
+
+.dialog__lead + .link-button {
+    margin-top: 10px;
 }
 
 .dialog__actions {

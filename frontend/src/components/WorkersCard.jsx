@@ -9,7 +9,7 @@ export default function WorkersCard({ t, workers, running, defaultCount, onAdd, 
     return (
         <section className="card panel">
             <div className="panel__header">
-                <div>
+                <div className="panel__heading">
                     <h2 className="panel__title">
                         {t('workersTitle')} <span className="panel__count">{t('workersActive', { n: activeCount })}</span>
                     </h2>

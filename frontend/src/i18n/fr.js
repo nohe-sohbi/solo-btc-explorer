@@ -356,6 +356,7 @@ export default {
     winBlock: "Bloc visé",
     winFoundBy: "Trouvé par",
     winDifficulty: "Difficulté atteinte",
+    winThreshold: "seuil : {value}",
     winNonce: "Nonce",
     winDemoNote: "**En mode démo, rien n'est envoyé au réseau Bitcoin : aucune récompense.** En mode serveur, le bloc est soumis au pool et les {reward} BTC sont versés à votre adresse après confirmation.",
     winServerNote: "**Le bloc candidat a été transmis au pool.** Si le réseau le confirme, la récompense de {reward} BTC sera versée à votre adresse.",

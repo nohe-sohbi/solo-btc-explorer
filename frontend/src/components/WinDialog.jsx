@@ -40,7 +40,7 @@ export default function WinDialog({ t, lang, theme, block, network, oddsPerDay, 
                 {block.difficulty > 0 && (
                     <Detail label={t('winDifficulty')}>
                         <span className="text-accent">
-                            {formatSi(block.difficulty, lang)} ({formatSi(network.difficulty, lang)})
+                            {formatSi(block.difficulty, lang)} ({t('winThreshold', { value: formatSi(network.difficulty, lang) })})
                         </span>
                     </Detail>
                 )}

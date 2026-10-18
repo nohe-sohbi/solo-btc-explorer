@@ -11,14 +11,46 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/dashboard-dark.png" alt="SoloForge dashboard — dark mode, mining" width="820">
+  <img src="screenshots/welcome-light.png" alt="SoloForge welcome page explaining Bitcoin mining to newcomers" width="820">
 </p>
 
 <p align="center">
-  <img src="screenshots/dashboard-light.png" alt="SoloForge dashboard — light mode" width="820">
+  <img src="screenshots/dashboard-light.png" alt="SoloForge dashboard — light theme, mining" width="820">
+</p>
+
+<p align="center">
+  <img src="screenshots/dashboard-dark.png" alt="SoloForge dashboard — dark theme, mining" width="820">
+</p>
+
+<p align="center">
+  <img src="screenshots/chances-light.png" alt="SoloForge odds simulator" width="820">
 </p>
 
 ## Features
+
+### Interface
+
+The interface is built for visitors who know nothing about Bitcoin as well as for people who do.
+It is available in **French and English**, in a **light and a dark theme** (one navy-and-gold identity).
+
+- 👋 **Welcome page** - First visit only: Bitcoin explained in three ideas, what your computer will actually
+  do, and what a wallet address is. The backend-free demo starts in one click with an example address
+- 🧭 **Sidebar navigation** - Dashboard, *My odds*, History, Settings, Help & vocabulary (hash routes such as
+  `#/chances`, so every screen can be linked and the browser's back button works)
+- 📊 **Simple dashboard, advanced view on demand** - Hashrate chart (1 min / 5 min / 1 h, honest time axis),
+  the jackpot and your odds in plain words, workers and a live activity feed. A switch reveals pool, network
+  and supervision details
+- 🎲 **Odds simulator** - Slide the hashrate from KH/s to EH/s or pick a machine (your browser, a GPU, an
+  ASIC, a 1,000-ASIC farm) and watch the expected time, daily/yearly chances and the comparison with the
+  lottery update. Numbers are written out in words in each language (French long scale, English short scale)
+- 🏆 **Win moment** - When a candidate block is found, a dialog shows what was found, by whom, the odds it
+  beat, and lets you export the proof as JSON
+- 🛟 **Honest states** - Banners for pool or server loss, fallback network data, high CPU use and background
+  tabs, each saying what happens, what is safe, and what to do. Destructive actions (reset) spell out exactly
+  what will be erased
+- ♿ **Accessible** - Focus-trapped dialogs, labelled controls, keyboard-friendly disclosures, readable contrast
+
+### Mining & backend
 
 - 🎰 **Solo Mining** - Connect to solo mining pools and try your luck at winning a full block reward
 - 📊 **Real-time Dashboard** - Live hashrate, shares, difficulty, and worker statistics via WebSocket
@@ -72,7 +104,8 @@ Solo Bitcoin mining dashboard. A Go backend mines via the Stratum protocol and s
 ## Tech Stack
 
 - **Backend**: Go 1.22 (Stratum protocol, WebSocket, REST API)
-- **Frontend**: React 18 + Vite (Glassmorphism UI)
+- **Frontend**: React 18 + Vite (design tokens in `frontend/src/styles`, flat FR/EN dictionaries in
+  `frontend/src/i18n`, no router or UI dependency)
 - **Infrastructure**: Docker + Docker Compose
 
 ## Quick Start
@@ -115,9 +148,10 @@ go test ./...            # run all tests
 go test -race ./...      # run with the race detector
 ```
 
-The frontend has its own Vitest suite (display formatters, mining-odds math, SHA-256
-vectors, address validation kept in sync with the Go vectors, and an `OddsPanel` render
-test) plus ESLint:
+The frontend has its own Vitest suite (display formatters, odds and simulator math, SHA-256
+vectors, address validation kept in sync with the Go vectors, the browser mining engine, hooks,
+components, every screen, an App-level integration test, and guards that keep the French and English
+dictionaries in sync) plus ESLint:
 
 ```bash
 cd frontend
@@ -167,19 +201,11 @@ every push and PR.
 | POST | `/api/mining/stop` | Stop mining |
 | WS | `/ws` | Real-time stats |
 
-## Screenshots
-
-The dashboard features a premium dark theme with glassmorphism effects:
-- Frosted glass stat cards
-- Gold accent gradients
-- Smooth animations
-- 3D rendered icons
-
 ## Disclaimer
 
 ⚠️ Solo mining Bitcoin with a CPU is essentially a lottery. The probability of finding a block is extremely low. This project is for educational purposes and to experience the thrill of the chase.
 
-Current block reward: **3.125 BTC** (~$150,000 USD)
+Current block reward: **3.125 BTC**
 
 ## License
 

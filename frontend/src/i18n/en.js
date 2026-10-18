@@ -357,6 +357,7 @@ export default {
     winBlock: "Target block",
     winFoundBy: "Found by",
     winDifficulty: "Difficulty reached",
+    winThreshold: "threshold: {value}",
     winNonce: "Nonce",
     winDemoNote: "**In demo mode nothing is sent to the Bitcoin network: no reward.** In server mode the block is submitted to the pool and the {reward} BTC are paid to your address after confirmation.",
     winServerNote: "**The candidate block was passed to the pool.** If the network confirms it, the {reward} BTC reward will be paid to your address.",

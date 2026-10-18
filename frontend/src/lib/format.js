@@ -4,6 +4,9 @@
 import { LOCALES, formatDecimal } from './bigNumbers.js';
 
 const HASHRATE_UNITS = [
+    ['EH/s', 1e18],
+    ['PH/s', 1e15],
+    ['TH/s', 1e12],
     ['GH/s', 1e9],
     ['MH/s', 1e6],
     ['KH/s', 1e3],

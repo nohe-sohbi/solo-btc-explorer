@@ -75,6 +75,14 @@ describe('formatReward', () => {
     });
 });
 
+describe('formatHashrate at industrial scale', () => {
+    it('scales up to TH/s, PH/s and EH/s for the simulator', () => {
+        expect(formatHashrate(2e14)).toBe('200.00 TH/s');
+        expect(formatHashrate(2e17)).toBe('200.00 PH/s');
+        expect(formatHashrate(8.66e20)).toBe('866.00 EH/s');
+    });
+});
+
 describe('hashrateScale', () => {
     it('returns the unit and its divisor', () => {
         expect(hashrateScale(540000)).toEqual({ unit: 'KH/s', divisor: 1e3 });

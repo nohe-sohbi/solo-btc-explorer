@@ -100,7 +100,9 @@ export default function WelcomeScreen({ t, lang, theme, network, savedWallet, on
                     <ul className="bullet-list">
                         {['welcomeConcrete1', 'welcomeConcrete2', 'welcomeConcrete3'].map((key) => (
                             <li key={key}>
-                                <Rich text={t(key)} />
+                                <span>
+                                    <Rich text={t(key)} />
+                                </span>
                             </li>
                         ))}
                     </ul>
