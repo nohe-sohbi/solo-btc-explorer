@@ -17,6 +17,7 @@ const DEFAULT_CONFIG = {
 
 const SHARE_DIFFICULTY = 0.00002; // share target (a real pool sets one far below the network)
 const MAX_HISTORY = 1000;
+const UNDO_WINDOW_MS = 30000; // how long a reset can still be undone (the backend allows the same)
 const PERSIST_THROTTLE_MS = 5000; // shares fire ~20/s; coalesce writes to localStorage
 
 export class DemoEngine {
@@ -39,6 +40,7 @@ export class DemoEngine {
 
         this.block = null;          // { header, height, networkDifficulty, id }
         this.blockSource = 'none';  // 'live' (mempool.space) | 'fallback' (bundled block) | 'none'
+        this.undoSnapshot = null;   // what the last reset cleared
         this.blockFetchedAt = 0;    // when the current block was received (the demo's "last job")
         this.blockPromise = null;
         this.priceUSD = 0;          // best-effort BTC/USD, for the odds panel's expected value
@@ -164,7 +166,7 @@ export class DemoEngine {
     _spawn(name) {
         const id = this.nextWorkerId++;
         const worker = new Worker(new URL('./miner.worker.js', import.meta.url), { type: 'module' });
-        const rec = { id, name: name || `cpu-worker-${id}`, worker, hashCount: 0, startTime: 0, running: false };
+        const rec = { id, name: name || `cpu-worker-${id}`, worker, hashCount: 0, hashBase: 0, startTime: 0, running: false };
         worker.onmessage = (e) => this._onWorkerMessage(rec, e.data);
         this.workers.set(id, rec);
         return rec;
@@ -173,6 +175,7 @@ export class DemoEngine {
     _startWorker(rec) {
         rec.startTime = Date.now();
         rec.hashCount = 0;
+        rec.hashBase = 0;
         rec.running = true;
         rec.worker.postMessage({
             cmd: 'start',
@@ -188,7 +191,8 @@ export class DemoEngine {
         if (!this.workers.has(rec.id)) return;
         switch (msg.type) {
             case 'progress':
-                rec.hashCount = msg.hashCount;
+                // The worker counts since it started; a reset moves the baseline instead.
+                rec.hashCount = msg.hashCount - rec.hashBase;
                 if (msg.bestDifficulty > this.bestDifficulty) {
                     this.bestDifficulty = msg.bestDifficulty;
                     this._persist(); // capture new best-difficulty records
@@ -309,7 +313,19 @@ export class DemoEngine {
     }
 
     // Clear all accumulated counters and history (mirrors POST /api/stats/reset).
+    // What was cleared is kept for UNDO_WINDOW_MS so the reset can be undone.
     resetStats() {
+        this.undoSnapshot = {
+            takenAt: Date.now(),
+            startTime: this.startTime,
+            state: this._snapshot(),
+            workers: [...this.workers.values()].map((rec) => ({
+                rec,
+                hashBase: rec.hashBase,
+                hashCount: rec.hashCount,
+                startTime: rec.startTime,
+            })),
+        };
         this.totalShares = 0;
         this.acceptedShares = 0;
         this.bestDifficulty = 0;
@@ -318,6 +334,7 @@ export class DemoEngine {
         this.sessionHistory = [];
         this.previousSeconds = 0;
         for (const rec of this.workers.values()) {
+            rec.hashBase += rec.hashCount;
             rec.hashCount = 0;
             rec.startTime = rec.running ? Date.now() : 0;
         }
@@ -325,6 +342,34 @@ export class DemoEngine {
         clearSnapshot(); // drop persisted history so the reset survives a refresh
         this._emit('stats', this.buildStatsPayload());
         return { status: 'reset' };
+    }
+
+    // Bring back what the last reset cleared (mirrors POST /api/stats/restore).
+    undoReset() {
+        const undo = this.undoSnapshot;
+        this.undoSnapshot = null;
+        if (!undo || Date.now() - undo.takenAt > UNDO_WINDOW_MS) {
+            throw new Error('Nothing to restore');
+        }
+        const { state } = undo;
+        this.totalShares = state.totalShares;
+        this.acceptedShares = state.acceptedShares;
+        this.bestDifficulty = state.bestDifficulty;
+        this.previousSeconds = state.previousSeconds;
+        this.shareHistory = state.shareHistory;
+        this.blockHistory = state.blockHistory;
+        this.sessionHistory = state.sessionHistory;
+        for (const { rec, hashBase, hashCount, startTime } of undo.workers) {
+            // The worker kept counting: with the old baseline its count includes
+            // everything, before and after the reset.
+            rec.hashBase = hashBase;
+            rec.hashCount = hashCount;
+            rec.startTime = rec.running ? startTime : 0;
+        }
+        if (this.running) this.startTime = undo.startTime;
+        this._persistNow();
+        this._emit('stats', this.buildStatsPayload());
+        return { status: 'restored' };
     }
 
     getHistory(limit) {

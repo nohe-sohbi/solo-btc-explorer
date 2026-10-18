@@ -447,6 +447,28 @@ describe('resetting the statistics', () => {
         expect(screen.getByText('Statistiques effacées.')).toBeTruthy();
     });
 
+    it('lets the user undo the reset from the confirmation message', async () => {
+        await renderApp();
+        fireEvent.click(screen.getByRole('button', { name: /Réinitialiser les statistiques/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Effacer définitivement' }));
+        await screen.findByText('Statistiques effacées.');
+
+        fireEvent.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annuler' }));
+        await waitFor(() => expect(backend.api.post).toHaveBeenCalledWith('/stats/restore', {}));
+        expect(await screen.findByText('Statistiques rétablies.')).toBeTruthy();
+    });
+
+    it('says so when the reset can no longer be undone', async () => {
+        await renderApp();
+        fireEvent.click(screen.getByRole('button', { name: /Réinitialiser les statistiques/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Effacer définitivement' }));
+        await screen.findByText('Statistiques effacées.');
+
+        backend.api.post.mockImplementationOnce(async () => { throw new Error('409'); });
+        fireEvent.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annuler' }));
+        expect(await screen.findByText('Impossible de rétablir les statistiques.')).toBeTruthy();
+    });
+
     it('does nothing when the user cancels', async () => {
         await renderApp();
         fireEvent.click(screen.getByRole('button', { name: /Réinitialiser les statistiques/ }));

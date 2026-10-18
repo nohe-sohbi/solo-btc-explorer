@@ -61,6 +61,7 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/status", s.handleStatus)
 	s.mux.HandleFunc("/api/stats", s.handleStats)
 	s.mux.HandleFunc("/api/stats/reset", s.handleStatsReset)
+	s.mux.HandleFunc("/api/stats/restore", s.handleStatsRestore)
 	s.mux.HandleFunc("/api/history", s.handleHistory)
 	s.mux.HandleFunc("/api/sessions", s.handleSessions)
 	s.mux.HandleFunc("/api/workers", s.handleWorkers)
@@ -336,6 +337,23 @@ func (s *Server) handleStatsReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse(w, map[string]string{"status": "reset"})
+}
+
+// handleStatsRestore undoes the last reset while it is still recent, so a
+// mis-click on "Reset statistics" is not final. 409 when there is nothing to undo.
+func (s *Server) handleStatsRestore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !s.stats.UndoReset() {
+		http.Error(w, "Nothing to restore", http.StatusConflict)
+		return
+	}
+	if err := s.stats.Save(); err != nil {
+		log.Printf("Failed to persist stats after restore: %v", err)
+	}
+	jsonResponse(w, map[string]string{"status": "restored"})
 }
 
 // handleHistory returns share/block history

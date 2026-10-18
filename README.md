@@ -188,7 +188,8 @@ every push and PR.
 |--------|----------|-------------|
 | GET | `/api/status` | Miner status |
 | GET | `/api/stats` | Mining statistics |
-| POST | `/api/stats/reset` | Clear all statistics and history |
+| POST | `/api/stats/reset` | Clear all statistics, sessions and history |
+| POST | `/api/stats/restore` | Undo the last reset within 30 s (409 if there is nothing to restore) |
 | GET | `/api/history` | Share history |
 | GET | `/api/network` | Live Bitcoin network context (difficulty, height, hashrate, price, block reward) |
 | GET | `/api/export` | Download history as CSV/JSON (`?dataset=shares\|sessions&format=csv\|json`) |

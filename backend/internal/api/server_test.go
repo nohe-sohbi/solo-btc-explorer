@@ -162,3 +162,42 @@ func TestAddPoolHealthRoundsRetryUp(t *testing.T) {
 		t.Fatalf("unexpected payload: %v", payload)
 	}
 }
+
+func TestStatsRestoreUndoesAReset(t *testing.T) {
+	t.Setenv("DATA_DIR", t.TempDir()) // the handlers persist; keep it out of /app/data
+	s := newTestServer(t)
+	s.stats.AddShare(1, "w", "job", "n", 5, true)
+
+	reset := httptest.NewRecorder()
+	s.handleStatsReset(reset, httptest.NewRequest(http.MethodPost, "/api/stats/reset", nil))
+	if len(s.stats.GetShareHistory(0)) != 0 {
+		t.Fatal("reset should have cleared the history")
+	}
+
+	restore := httptest.NewRecorder()
+	s.handleStatsRestore(restore, httptest.NewRequest(http.MethodPost, "/api/stats/restore", nil))
+	if restore.Code != http.StatusOK {
+		t.Fatalf("restore after a reset should succeed, got %d", restore.Code)
+	}
+	if len(s.stats.GetShareHistory(0)) != 1 {
+		t.Fatal("restore should bring the share back")
+	}
+}
+
+func TestStatsRestoreWithoutResetIsAConflict(t *testing.T) {
+	s := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.handleStatsRestore(rec, httptest.NewRequest(http.MethodPost, "/api/stats/restore", nil))
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d", rec.Code)
+	}
+}
+
+func TestStatsRestoreRejectsGet(t *testing.T) {
+	s := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.handleStatsRestore(rec, httptest.NewRequest(http.MethodGet, "/api/stats/restore", nil))
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405, got %d", rec.Code)
+	}
+}

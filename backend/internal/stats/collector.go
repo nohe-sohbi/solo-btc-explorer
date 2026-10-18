@@ -80,6 +80,27 @@ type Collector struct {
 	// Persistence
 	dataDir  string
 	dataFile string
+
+	// What the last Reset erased, kept briefly so it can be undone.
+	undo *resetSnapshot
+}
+
+// UndoWindow is how long after a Reset it can still be undone.
+const UndoWindow = 30 * time.Second
+
+// resetSnapshot is everything Reset clears, as it was just before.
+type resetSnapshot struct {
+	takenAt               time.Time
+	totalHashes           uint64
+	totalShares           int
+	acceptedShares        int
+	rejectedShares        int
+	bestDifficulty        float64
+	previousMiningSeconds float64
+	startTime             time.Time
+	shareHistory          []ShareEntry
+	blockHistory          []BlockEntry
+	sessionHistory        []Session
 }
 
 // NewCollector creates a new stats collector
@@ -407,6 +428,20 @@ func (c *Collector) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	c.undo = &resetSnapshot{
+		takenAt:               time.Now(),
+		totalHashes:           c.totalHashes,
+		totalShares:           c.totalShares,
+		acceptedShares:        c.acceptedShares,
+		rejectedShares:        c.rejectedShares,
+		bestDifficulty:        c.bestDifficulty,
+		previousMiningSeconds: c.previousMiningSeconds,
+		startTime:             c.startTime,
+		shareHistory:          c.shareHistory,
+		blockHistory:          c.blockHistory,
+		sessionHistory:        c.sessionHistory,
+	}
+
 	c.totalHashes = 0
 	c.totalShares = 0
 	c.acceptedShares = 0
@@ -415,5 +450,32 @@ func (c *Collector) Reset() {
 	c.previousMiningSeconds = 0
 	c.shareHistory = make([]ShareEntry, 0)
 	c.blockHistory = make([]BlockEntry, 0)
+	c.sessionHistory = make([]Session, 0)
 	c.startTime = time.Now()
+}
+
+// UndoReset brings back what the last Reset erased. It reports false when there
+// is nothing to restore: no reset happened, it was already undone, or it is
+// older than UndoWindow.
+func (c *Collector) UndoReset() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	snap := c.undo
+	c.undo = nil
+	if snap == nil || time.Since(snap.takenAt) > UndoWindow {
+		return false
+	}
+
+	c.totalHashes = snap.totalHashes
+	c.totalShares = snap.totalShares
+	c.acceptedShares = snap.acceptedShares
+	c.rejectedShares = snap.rejectedShares
+	c.bestDifficulty = snap.bestDifficulty
+	c.previousMiningSeconds = snap.previousMiningSeconds
+	c.startTime = snap.startTime
+	c.shareHistory = snap.shareHistory
+	c.blockHistory = snap.blockHistory
+	c.sessionHistory = snap.sessionHistory
+	return true
 }

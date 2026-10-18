@@ -99,6 +99,58 @@ describe('DemoEngine block candidates', () => {
     });
 });
 
+describe('DemoEngine reset and undo', () => {
+    const makeEngine = () => {
+        const engine = new DemoEngine();
+        const rec = { id: 1, name: 'cpu-worker-1', hashCount: 0, hashBase: 0, startTime: 0, running: true };
+        engine.workers.set(1, rec);
+        engine.running = true;
+        engine.startTime = Date.now();
+        engine.totalShares = 10;
+        engine.acceptedShares = 10;
+        engine.bestDifficulty = 0.04;
+        engine.shareHistory = [{ nonce: 'a' }];
+        engine._onWorkerMessage(rec, { type: 'progress', hashCount: 1000, bestDifficulty: 0.04 });
+        return { engine, rec };
+    };
+
+    it('keeps the hash counter at zero when the running workers report again', () => {
+        const { engine, rec } = makeEngine();
+        engine.resetStats();
+        engine._onWorkerMessage(rec, { type: 'progress', hashCount: 1500, bestDifficulty: 0 });
+        // Only the 500 hashes computed since the reset count.
+        expect(rec.hashCount).toBe(500);
+    });
+
+    it('restores everything the reset erased, plus what was computed meanwhile', () => {
+        const { engine, rec } = makeEngine();
+        engine.resetStats();
+        engine._onWorkerMessage(rec, { type: 'progress', hashCount: 1500, bestDifficulty: 0 });
+        expect(engine.undoReset()).toEqual({ status: 'restored' });
+
+        engine._onWorkerMessage(rec, { type: 'progress', hashCount: 2000, bestDifficulty: 0 });
+        expect(rec.hashCount).toBe(2000);
+        expect(engine.totalShares).toBe(10);
+        expect(engine.bestDifficulty).toBe(0.04);
+        expect(engine.shareHistory).toEqual([{ nonce: 'a' }]);
+    });
+
+    it('can only undo once, and only right after a reset', () => {
+        const { engine } = makeEngine();
+        expect(() => engine.undoReset()).toThrow('Nothing to restore');
+        engine.resetStats();
+        engine.undoReset();
+        expect(() => engine.undoReset()).toThrow('Nothing to restore');
+    });
+
+    it('refuses to undo a reset that is too old', () => {
+        const { engine } = makeEngine();
+        engine.resetStats();
+        engine.undoSnapshot.takenAt -= 31000;
+        expect(() => engine.undoReset()).toThrow('Nothing to restore');
+    });
+});
+
 describe('DemoEngine stats payload', () => {
     it('reports the current block as the last job the "pool" sent', async () => {
         fetchLatestBlock.mockResolvedValue(LIVE_BLOCK);

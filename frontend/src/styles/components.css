@@ -907,6 +907,9 @@
 }
 
 .toast {
+    display: flex;
+    align-items: center;
+    gap: 16px;
     position: fixed;
     right: 20px;
     bottom: 20px;
@@ -916,6 +919,15 @@
     box-shadow: var(--shadow-dialog);
     color: #fff;
     font-weight: 500;
+}
+
+.toast__action {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-weight: 700;
+    text-decoration: underline;
 }
 
 .toast--success {

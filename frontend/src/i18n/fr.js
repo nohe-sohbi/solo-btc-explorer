@@ -182,6 +182,7 @@ export default {
     feedWorkerAdded: "Worker ajouté",
     feedWorkerRemoved: "Worker retiré",
     feedStatsReset: "Statistiques réinitialisées",
+    feedStatsRestored: "Statistiques rétablies",
     feedConfigSaved: "Configuration enregistrée",
 
     // ----- Vue avancée -----
@@ -378,6 +379,9 @@ export default {
     toastConfigSaved: "Configuration enregistrée.",
     toastConfigFailed: "Échec de l'enregistrement.",
     toastResetDone: "Statistiques effacées.",
+    toastUndo: "Annuler",
+    toastRestoreDone: "Statistiques rétablies.",
+    toastRestoreFailed: "Impossible de rétablir les statistiques.",
     toastResetFailed: "Échec de la réinitialisation.",
     toastWorkerFailed: "Impossible de modifier les workers.",
 

@@ -43,7 +43,7 @@ export default function App() {
     const [welcomed, setWelcomed] = useStoredFlag(WELCOMED_KEY);
 
     const [toast, setToast] = useState(null);
-    const notify = useCallback((message, tone = 'success') => setToast({ message, tone }), []);
+    const notify = useCallback((message, tone = 'success', action) => setToast({ message, tone, action }), []);
     const hideToast = useCallback(() => setToast(null), []);
 
     const session = useMiningSession({ notify, t });
@@ -226,7 +226,7 @@ export default function App() {
                 </div>
             </main>
 
-            {toast && <Toast message={toast.message} tone={toast.tone} onClose={hideToast} />}
+            {toast && <Toast message={toast.message} tone={toast.tone} action={toast.action} onClose={hideToast} />}
 
             {session.foundBlock && (
                 <WinDialog

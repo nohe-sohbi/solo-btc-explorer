@@ -11,6 +11,7 @@ import StateBanner from './StateBanner.jsx';
 import ResetDialog from './ResetDialog.jsx';
 import WinDialog from './WinDialog.jsx';
 import SpeedChart from './SpeedChart.jsx';
+import Toast from './Toast.jsx';
 import { PERIODS } from '../lib/series.js';
 import { createTranslator } from '../i18n/index.js';
 
@@ -264,5 +265,37 @@ describe('SpeedChart', () => {
         const { container } = render(<SpeedChart samples={samples} hiddenFlags={hidden} period={PERIODS[0]} t={t} />);
         expect(container.querySelectorAll('.speed-chart__slow')).toHaveLength(1);
         expect(screen.getByText(/Zone grisée/)).toBeTruthy();
+    });
+});
+
+describe('Toast', () => {
+    it('shows a message and closes itself', () => {
+        vi.useFakeTimers();
+        const onClose = vi.fn();
+        render(<Toast message="Enregistré" onClose={onClose} />);
+        expect(screen.getByRole('status').textContent).toBe('Enregistré');
+        vi.advanceTimersByTime(4100);
+        expect(onClose).toHaveBeenCalled();
+        vi.useRealTimers();
+    });
+
+    it('offers an action, runs it once and then closes', () => {
+        const onClick = vi.fn();
+        const onClose = vi.fn();
+        render(<Toast message="Effacé" action={{ label: 'Annuler', onClick }} onClose={onClose} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays longer when it carries an action, so there is time to use it', () => {
+        vi.useFakeTimers();
+        const onClose = vi.fn();
+        render(<Toast message="Effacé" action={{ label: 'Annuler', onClick: () => {} }} onClose={onClose} />);
+        vi.advanceTimersByTime(4100);
+        expect(onClose).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(4000);
+        expect(onClose).toHaveBeenCalled();
+        vi.useRealTimers();
     });
 });

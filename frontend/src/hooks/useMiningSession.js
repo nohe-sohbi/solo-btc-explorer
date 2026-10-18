@@ -30,7 +30,7 @@ const DEFAULT_CONFIG = {
 // — and of every action that changes it. It talks to the Go backend, or to the
 // in-browser demo engine, through the same hooks.
 //
-// `notify(message, tone)` shows a toast; `t` is the translator (used for messages).
+// `notify(message, tone, action)` shows a toast (with an optional `{ label, onClick }` action); `t` is the translator (used for messages).
 export function useMiningSession({ notify, t }) {
     const { isConnected: socketOpen, stats, lastMessage, reconnect } = useWebSocket();
     const { get, post, put, delete: remove } = useAPI();
@@ -188,6 +188,19 @@ export function useMiningSession({ notify, t }) {
         [remove, notify, t, addFeedEvent]
     );
 
+    // Brings back what the last reset erased (the backend allows it for 30 s).
+    const undoReset = useCallback(async () => {
+        try {
+            await post('/stats/restore', {});
+            await refresh();
+            addFeedEvent('info', 'feedStatsRestored');
+            notify(t('toastRestoreDone'), 'success');
+            track('undo_reset_stats');
+        } catch {
+            notify(t('toastRestoreFailed'), 'error');
+        }
+    }, [post, refresh, notify, t, addFeedEvent]);
+
     const resetStats = useCallback(async () => {
         try {
             await post('/stats/reset', {});
@@ -195,14 +208,14 @@ export function useMiningSession({ notify, t }) {
             setSessions([]);
             setSamples([]);
             addFeedEvent('info', 'feedStatsReset');
-            notify(t('toastResetDone'), 'success');
+            notify(t('toastResetDone'), 'success', { label: t('toastUndo'), onClick: undoReset });
             track('reset_stats');
             return true;
         } catch {
             notify(t('toastResetFailed'), 'error');
             return false;
         }
-    }, [post, notify, t, addFeedEvent]);
+    }, [post, notify, t, addFeedEvent, undoReset]);
 
     // Skips the wait before the backend's next pool reconnection attempt.
     const retryPool = useCallback(() => post('/pool/retry', {}).catch(() => {}), [post]);
@@ -279,6 +292,7 @@ export function useMiningSession({ notify, t }) {
             addWorker,
             removeWorker,
             resetStats,
+            undoReset,
             retryPool,
             retryNetworkBlock,
             reconnect,

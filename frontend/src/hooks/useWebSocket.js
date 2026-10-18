@@ -116,6 +116,7 @@ async function demoRequest(endpoint, options) {
     }
     if (path === '/status') return demoEngine.getStatus();
     if (path === '/stats/reset') return demoEngine.resetStats();
+    if (path === '/stats/restore') return demoEngine.undoReset();
     if (path === '/network/refresh') return demoEngine.refreshBlock();
     if (path === '/stats') return demoEngine.buildStatsPayload();
     if (path === '/history') return demoEngine.getHistory(parseLimit(endpoint, 100));
