@@ -429,6 +429,7 @@
 }
 
 .speed-chart__labels {
+    line-height: 1.5;
     display: flex;
     justify-content: space-between;
     margin-top: 8px;

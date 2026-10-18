@@ -21,7 +21,7 @@ export default function ActivityCard({ t, lang, feed, onOpenHistory }) {
         <section className="card panel">
             <div className="panel__header">
                 <h2 className="panel__title">{t('activityTitle')}</h2>
-                <button type="button" className="link-button" onClick={onOpenHistory}>
+                <button type="button" className="link-button link-button--small" onClick={onOpenHistory}>
                     {t('activityAll')}
                 </button>
             </div>
