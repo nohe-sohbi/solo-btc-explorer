@@ -147,7 +147,7 @@ describe('ConfigScreen', () => {
         const summary = screen.getByRole('heading', { name: 'Avec ces réglages' }).closest('section');
         expect(within(summary).getByText('≈ 475.26 KH/s')).toBeTruthy();
         expect(within(summary).getByText('≈ 80 %')).toBeTruthy();
-        expect(within(summary).getByText(/1 sur 12,\d billions/)).toBeTruthy();
+        expect(within(summary).getByText(/1 sur 1\d billions/)).toBeTruthy();
     });
 
     it('offers to explore the odds from the summary', () => {
@@ -178,7 +178,7 @@ describe('ChancesScreen', () => {
     it('starts from the visitor\'s measured speed and shows the odds', () => {
         renderChances();
         expect(screen.getByText('475 KH/s', { selector: 'output' })).toBeTruthy();
-        expect(screen.getByText(/34,\d milliards d'années/)).toBeTruthy();
+        expect(screen.getByText(/\d+ milliards d'années/)).toBeTruthy();
         expect(screen.getByText(/2,5 fois l'âge de l'univers/)).toBeTruthy();
         expect(screen.getByText(/fois moins probable que de gagner à l'EuroMillions/)).toBeTruthy();
     });

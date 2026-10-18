@@ -66,7 +66,13 @@ const PROBE_LABEL_KEYS = {
 const PROBE_TONES = { ok: 'ok', down: 'danger', checking: 'idle', demo: 'idle' };
 
 function ProbeChip({ kind, state, t }) {
-    return <span className={`status-pill status-pill--${PROBE_TONES[state]}`}>{t(PROBE_LABEL_KEYS[kind][state])}</span>;
+    // In the demo the chip says "Demo"; the tooltip explains why there is no probe.
+    const title = state === 'demo' ? t('advSupervisionDemo') : undefined;
+    return (
+        <span className={`status-pill status-pill--${PROBE_TONES[state]}`} title={title}>
+            {t(PROBE_LABEL_KEYS[kind][state])}
+        </span>
+    );
 }
 
 // The monitoring endpoints, with the live state of the two probes. In the demo
@@ -103,10 +109,7 @@ export function SupervisionPanel({ t }) {
         <section className="card panel">
             <PanelHeader title={t('advSupervisionTitle')} t={t} />
             {IS_DEMO ? (
-                <>
-                    <MonitoringRows t={t} health="demo" ready="demo" />
-                    <p className="panel__footnote">{t('advSupervisionDemo')}</p>
-                </>
+                <MonitoringRows t={t} health="demo" ready="demo" />
             ) : (
                 <LiveMonitoring t={t} />
             )}

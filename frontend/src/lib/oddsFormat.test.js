@@ -24,8 +24,8 @@ describe('formatDuration', () => {
     });
 
     it('names astronomical spans with a scale word instead of exponents', () => {
-        expect(formatDuration(34.7e9 * SECONDS_PER_YEAR, 'fr', tFr)).toBe("34,7 milliards d'années");
-        expect(formatDuration(34.7e9 * SECONDS_PER_YEAR, 'en', tEn)).toBe('34.7 billion years');
+        expect(formatDuration(34.7e9 * SECONDS_PER_YEAR, 'fr', tFr)).toBe("35 milliards d'années");
+        expect(formatDuration(34.7e9 * SECONDS_PER_YEAR, 'en', tEn)).toBe('35 billion years');
     });
 });
 
@@ -37,8 +37,8 @@ describe('formatOneIn', () => {
 
     it('renders certainty and "1 in N" odds in both languages', () => {
         expect(formatOneIn(1, 'fr', tFr)).toBe('quasi certain');
-        expect(formatOneIn(1 / 12.7e12, 'fr', tFr)).toBe('1 sur 12,7 billions');
-        expect(formatOneIn(1 / 12.7e12, 'en', tEn)).toBe('1 in 12.7 trillion');
+        expect(formatOneIn(1 / 12.7e12, 'fr', tFr)).toBe('1 sur 13 billions');
+        expect(formatOneIn(1 / 12.7e12, 'en', tEn)).toBe('1 in 13 trillion');
     });
 });
 

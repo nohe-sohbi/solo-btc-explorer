@@ -360,7 +360,6 @@
 }
 
 .panel__subtitle {
-    margin-top: 2px;
     color: var(--text-muted);
     font-size: 13.5px;
 }
@@ -419,14 +418,14 @@
 
 /* ----- Lists of facts and rows ----- */
 .facts {
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
 .facts__row {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 4px 16px;
     padding: 9px 0;
     border-top: 1px solid var(--line);
@@ -729,6 +728,7 @@
 }
 
 .button-row {
+    margin-top: 14px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
