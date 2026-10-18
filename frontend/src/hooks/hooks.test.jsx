@@ -68,7 +68,7 @@ describe('useBackgroundNotice', () => {
         expect(result.current.visible).toBe(false);
     });
 
-    it('dismisses itself after a while, or on demand', () => {
+    it('dismisses itself after a while', () => {
         const { result } = renderHook(() => useBackgroundNotice(true));
         act(() => setVisibility('hidden'));
         act(() => vi.advanceTimersByTime(5000));
@@ -81,8 +81,6 @@ describe('useBackgroundNotice', () => {
         act(() => vi.advanceTimersByTime(5000));
         act(() => setVisibility('visible'));
         expect(result.current.visible).toBe(true);
-        act(() => result.current.dismiss());
-        expect(result.current.visible).toBe(false);
     });
 });
 

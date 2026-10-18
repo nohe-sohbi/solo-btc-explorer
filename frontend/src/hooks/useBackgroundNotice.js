@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 // Browsers throttle timers (and the demo's compute loops) in background tabs. If
 // the tab was hidden for at least this long while mining, the speed curve shows a
@@ -33,6 +33,5 @@ export function useBackgroundNotice(active) {
         return () => clearTimeout(timer);
     }, [visible]);
 
-    const dismiss = useCallback(() => setVisible(false), []);
-    return { visible: visible && active, dismiss };
+    return { visible: visible && active };
 }

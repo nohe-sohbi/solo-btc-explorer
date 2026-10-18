@@ -181,12 +181,10 @@ describe('StateBanner', () => {
         expect(onClick).toHaveBeenCalled();
     });
 
-    it('is a polite status for information and can be dismissed', () => {
-        const onDismiss = vi.fn();
-        render(<StateBanner tone="info" title="Info" body="Détail" onDismiss={onDismiss} dismissLabel="Fermer" />);
+    it('is a polite status for information, with no button when there is nothing to do', () => {
+        render(<StateBanner tone="info" title="Info" body="Détail" />);
         expect(screen.getByRole('status')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
-        expect(onDismiss).toHaveBeenCalled();
+        expect(screen.queryByRole('button')).toBeNull();
     });
 });
 
@@ -317,7 +315,7 @@ describe('StateBanners: the Bitcoin block cannot be fetched (demo)', () => {
         actions: { retryNetworkBlock: vi.fn() },
         ...overrides,
     });
-    const noNotice = { visible: false, dismiss: () => {} };
+    const noNotice = { visible: false };
 
     it('says mining starts as soon as the block is received, with the countdown', () => {
         render(<StateBanners t={t} session={session()} backgroundNotice={noNotice} />);

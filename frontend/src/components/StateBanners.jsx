@@ -67,8 +67,6 @@ export default function StateBanners({ t, session, backgroundNotice, advanced })
                     tone="info"
                     title={t('bannerTabTitle')}
                     body={t('bannerTabBody')}
-                    onDismiss={backgroundNotice.dismiss}
-                    dismissLabel={t('dismiss')}
                 />
             )}
         </>

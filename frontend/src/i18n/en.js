@@ -213,7 +213,6 @@ export default {
     advEndpointNetwork: "difficulty, height, price",
 
     // ----- State banners -----
-    dismiss: "Dismiss",
     bannerPoolTitle: "Pool connection interrupted",
     bannerPoolBody: "Retrying automatically. Mining resumes on its own and your statistics are kept.",
     bannerPoolBodyRetry: "Retrying in {seconds} s. Mining resumes on its own and your statistics are kept.",

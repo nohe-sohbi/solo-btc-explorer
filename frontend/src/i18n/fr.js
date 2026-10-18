@@ -212,7 +212,6 @@ export default {
     advEndpointNetwork: "difficulté, hauteur, prix",
 
     // ----- Bandeaux d'état -----
-    dismiss: "Fermer",
     bannerPoolTitle: "Connexion au pool interrompue",
     bannerPoolBody: "Nouvelle tentative automatique. Votre mining reprend tout seul, vos statistiques sont conservées.",
     bannerPoolBodyRetry: "Nouvelle tentative dans {seconds} s. Votre mining reprend tout seul, vos statistiques sont conservées.",
