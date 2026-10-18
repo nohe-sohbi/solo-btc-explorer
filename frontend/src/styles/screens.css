@@ -685,6 +685,10 @@
     font-size: 17px;
 }
 
+.result .facts__row {
+    font-size: 14px;
+}
+
 .result .facts__row dd {
     font-size: 14px;
 }
