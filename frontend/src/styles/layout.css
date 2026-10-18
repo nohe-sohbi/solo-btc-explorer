@@ -1,0 +1,285 @@
+/* Application shell: sidebar + main column, the page grid helpers, responsive rules. */
+
+.app {
+    display: flex;
+    flex-wrap: wrap;
+    min-height: 100vh;
+}
+
+/* ----- Sidebar ----- */
+.sidebar {
+    flex: 1 0 232px;
+    max-width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 28px 16px 24px;
+    border-right: 1px solid var(--line);
+}
+
+.sidebar__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px;
+}
+
+.sidebar__logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    object-fit: cover;
+    flex: none;
+}
+
+.sidebar__name {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.sidebar__tagline {
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+}
+
+.nav-link:hover {
+    background: var(--panel-2);
+}
+
+.nav-link.is-active {
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.sidebar__footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pool-card {
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--panel);
+    box-shadow: var(--shadow-card);
+}
+
+.pool-card__status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.pool-card__status--ok {
+    color: var(--success);
+}
+
+.pool-card__status--warn {
+    color: var(--accent);
+}
+
+.pool-card__status--error {
+    color: var(--danger);
+}
+
+.pool-card__status--idle {
+    color: var(--text-muted);
+}
+
+.pool-card__host {
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    word-break: break-all;
+}
+
+.pool-card__note {
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+/* ----- Main column ----- */
+.main {
+    flex: 999 1 640px;
+    min-width: 0;
+    padding: 28px 40px 56px;
+}
+
+.page {
+    width: 100%;
+    max-width: 1220px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ----- Top bar ----- */
+.topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+}
+
+.topbar__title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+}
+
+.topbar__title {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+
+.topbar__subtitle {
+    margin-top: 2px;
+    max-width: 720px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.topbar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+}
+
+/* ----- Page grids ----- */
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.split,
+.duo,
+.trio,
+.tile-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+/* A wide card next to a narrow one (speed + jackpot). */
+.split > :first-child {
+    flex: 2 1 560px;
+}
+
+.split > :last-child {
+    flex: 1 1 320px;
+}
+
+.split--even > :first-child {
+    flex: 1 1 420px;
+}
+
+.split--even > :last-child {
+    flex: 1.2 1 480px;
+}
+
+.split--config {
+    align-items: flex-start;
+}
+
+.split--config > :first-child {
+    flex: 2 1 520px;
+}
+
+.split--config > :last-child {
+    flex: 1 1 320px;
+}
+
+.duo > :first-child {
+    flex: 1.1 1 460px;
+}
+
+.duo > :last-child {
+    flex: 1 1 400px;
+}
+
+.trio > * {
+    flex: 1 1 320px;
+}
+
+.split > *,
+.duo > *,
+.trio > * {
+    min-width: 0;
+}
+
+.tile-row > * {
+    flex: 1 1 200px;
+}
+
+/* ----- Small screens: the menu moves above the content ----- */
+@media (max-width: 900px) {
+    .sidebar {
+        flex-basis: 100%;
+        gap: 16px;
+        padding: 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .sidebar__nav {
+        flex-direction: row;
+        overflow-x: auto;
+    }
+
+    .nav-link {
+        width: auto;
+        flex: none;
+        white-space: nowrap;
+    }
+
+    .sidebar__footer {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .pool-card {
+        flex: 1 1 220px;
+    }
+
+    .main {
+        padding: 20px 16px 40px;
+    }
+}

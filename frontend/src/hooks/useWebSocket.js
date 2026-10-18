@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { demoEngine } from '../demo/engine.js';
-
-// Build-time switch: when VITE_DEMO_MODE=true the hooks talk to the in-browser mining
-// engine instead of the Go backend (/ws, /api). When false, behaviour is unchanged.
-const DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+import { IS_DEMO } from '../config/runtime.js';
 
 /**
  * Custom hook for WebSocket connection to the backend
@@ -83,7 +80,7 @@ export function useWebSocket(url = '/ws') {
     }, []);
 
     useEffect(() => {
-        if (DEMO) {
+        if (IS_DEMO) {
             // No socket — subscribe to the local engine's event stream.
             setIsConnected(true);
             const unsubscribe = demoEngine.subscribe(handleMessage);
@@ -119,6 +116,7 @@ async function demoRequest(endpoint, options) {
     }
     if (path === '/status') return demoEngine.getStatus();
     if (path === '/stats/reset') return demoEngine.resetStats();
+    if (path === '/network/refresh') return demoEngine.refreshBlock();
     if (path === '/stats') return demoEngine.buildStatsPayload();
     if (path === '/history') return demoEngine.getHistory(parseLimit(endpoint, 100));
     if (path === '/sessions') return demoEngine.getSessions(parseLimit(endpoint, 50));
@@ -148,7 +146,7 @@ export function useAPI() {
         setError(null);
 
         try {
-            if (DEMO) {
+            if (IS_DEMO) {
                 const data = await demoRequest(endpoint, options);
                 setLoading(false);
                 return data;

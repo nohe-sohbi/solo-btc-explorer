@@ -5,11 +5,12 @@
 import { buildBlockHeader, fetchLatestBlock, fetchBtcPrice, FALLBACK_BLOCK } from './header.js';
 import { blockSubsidy } from '../lib/odds.js';
 import { loadSnapshot, saveSnapshot, clearSnapshot } from './persistence.js';
+import { EXAMPLE_WALLET_ADDRESS } from '../config/runtime.js';
 
 const DEFAULT_CONFIG = {
     pool_url: 'solo.ckpool.org',
     pool_port: 3333,
-    wallet_address: '1FngDUBvDhPh9z3paCRHFEtHjnUMAFacn9',
+    wallet_address: EXAMPLE_WALLET_ADDRESS,
     max_cpu_percent: 80,
     num_workers: 4,
 };
@@ -18,7 +19,7 @@ const SHARE_DIFFICULTY = 0.00002; // share target (a real pool sets one far belo
 const MAX_HISTORY = 1000;
 const PERSIST_THROTTLE_MS = 5000; // shares fire ~20/s; coalesce writes to localStorage
 
-class DemoEngine {
+export class DemoEngine {
     constructor() {
         this.config = { ...DEFAULT_CONFIG };
         this.running = false;
@@ -37,6 +38,7 @@ class DemoEngine {
         this.sessionHistory = [];
 
         this.block = null;          // { header, height, networkDifficulty, id }
+        this.blockSource = 'none';  // 'live' (mempool.space) | 'fallback' (bundled block) | 'none'
         this.blockPromise = null;
         this.priceUSD = 0;          // best-effort BTC/USD, for the odds panel's expected value
 
@@ -104,10 +106,6 @@ class DemoEngine {
         for (const cb of this.subscribers) cb(evt);
     }
 
-    _log(message, color) {
-        this._emit('log', { message, color });
-    }
-
     _startStatsLoop() {
         if (this.statsTimer) return;
         this.statsTimer = setInterval(() => {
@@ -116,39 +114,48 @@ class DemoEngine {
     }
 
     // ---------- block source (real data, no backend) ----------
+    // Fetches the current chain tip from mempool.space. When the API is unreachable
+    // it falls back to a bundled recent block so the demo works even offline; a
+    // block we already hold is never replaced by the fallback.
+    async _fetchBlock() {
+        let raw;
+        let live;
+        try {
+            raw = await fetchLatestBlock();
+            live = true;
+        } catch {
+            if (this.block) return this.block;
+            raw = FALLBACK_BLOCK;
+            live = false;
+        }
+        this.block = {
+            header: buildBlockHeader(raw),
+            height: raw.height,
+            networkDifficulty: raw.difficulty,
+            id: raw.id,
+        };
+        this.blockSource = live ? 'live' : 'fallback';
+        // Best-effort price so the odds can show expected value; a failure just
+        // leaves it at 0 and the USD figures stay hidden.
+        if (live) {
+            fetchBtcPrice().then((p) => { this.priceUSD = p; }).catch(() => {});
+        }
+        return this.block;
+    }
+
     async ensureBlock() {
         if (this.block) return this.block;
-        if (!this.blockPromise) {
-            this.blockPromise = (async () => {
-                let raw, live;
-                try {
-                    raw = await fetchLatestBlock();
-                    live = true;
-                } catch (err) {
-                    raw = FALLBACK_BLOCK;
-                    live = false;
-                }
-                this.block = {
-                    header: buildBlockHeader(raw),
-                    height: raw.height,
-                    networkDifficulty: raw.difficulty,
-                    id: raw.id,
-                };
-                // Best-effort price so the odds panel can show expected value; a
-                // failure just leaves it at 0 and the USD figures stay hidden.
-                if (live) {
-                    fetchBtcPrice().then((p) => { this.priceUSD = p; }).catch(() => {});
-                }
-                // Deferred so this log lands in its own tick and isn't batched away by
-                // the stats event emitted right after mining starts.
-                setTimeout(() => {
-                    if (live) this._log(`📡 Bloc réseau #${raw.height} chargé (mempool.space)`, 'var(--info)');
-                    else this._log(`⚠️ API hors ligne — bloc de secours #${raw.height}`, 'var(--warning)');
-                }, 0);
-                return this.block;
-            })();
-        }
+        if (!this.blockPromise) this.blockPromise = this._fetchBlock();
         return this.blockPromise;
+    }
+
+    // Retries the network fetch after a fallback. Workers that are already running
+    // keep hashing their current header (restarting them would zero their
+    // counters); the fresh block is used from the next start.
+    async refreshBlock() {
+        await this._fetchBlock();
+        this._emit('stats', this.buildStatsPayload());
+        return { block_source: this.blockSource };
     }
 
     // ---------- worker plumbing ----------
@@ -202,17 +209,21 @@ class DemoEngine {
                 // emission (they fire ~20/s and would needlessly churn the UI).
                 this._persist();
                 break;
-            case 'block':
-                this.blockHistory.push({
+            case 'block': {
+                const entry = {
                     timestamp: Date.now(),
                     height: this.block ? this.block.height : 0,
                     prev_hash: this.block ? this.block.id : '',
-                });
+                    worker_name: rec.name,
+                    nonce: msg.nonce,
+                    difficulty: msg.difficulty,
+                };
+                this.blockHistory.push(entry);
                 if (this.blockHistory.length > MAX_HISTORY) this.blockHistory.shift();
                 this._persistNow(); // a candidate block is the rarest, most precious event
-                this._emit('block', { difficulty: msg.difficulty });
-                this._log('🆕 Bloc candidat trouvé (démo) !', 'var(--gold)');
+                this._emit('block', entry);
                 break;
+            }
             default:
                 break;
         }
@@ -273,6 +284,7 @@ class DemoEngine {
             total_hashes: totalHashes,
             total_shares: this.totalShares,
             accepted_shares: this.acceptedShares,
+            rejected_shares: this.totalShares - this.acceptedShares,
             best_difficulty: this.bestDifficulty,
             uptime_seconds: uptime,
             // Surfaced so the odds estimator can use the live network difficulty,
@@ -281,6 +293,7 @@ class DemoEngine {
             block_height: this.block ? this.block.height : 0,
             block_reward_btc: this.block ? blockSubsidy(this.block.height) : 0,
             btc_price_usd: this.priceUSD,
+            block_source: this.blockSource,
             workers,
             connected: this.running,
             authorized: this.running,

@@ -13,7 +13,11 @@ export default defineConfig({
             '/ws': {
                 target: 'ws://localhost:8080',
                 ws: true
-            }
+            },
+            // Health probes and metrics, linked from the advanced view.
+            '/healthz': 'http://localhost:8080',
+            '/readyz': 'http://localhost:8080',
+            '/metrics': 'http://localhost:8080'
         }
     },
     test: {
