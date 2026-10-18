@@ -4,7 +4,8 @@ import { checkWallet, WALLET_ERROR_KEYS } from '../lib/walletCheck.js';
 
 // A Bitcoin address input with live validation feedback. Validation is purely
 // informative here: callers decide what to block, using checkWallet themselves.
-export default function WalletField({ label, value, onChange, t, disabled = false, readOnly = false, placeholder }) {
+// `confirmValid` turns off the green confirmation, e.g. for a built-in example address.
+export default function WalletField({ label, value, onChange, t, disabled = false, readOnly = false, placeholder, confirmValid = true }) {
     const inputId = useId();
     const messageId = useId();
     const check = checkWallet(value);
@@ -28,7 +29,7 @@ export default function WalletField({ label, value, onChange, t, disabled = fals
                 aria-invalid={check.status === 'invalid'}
                 aria-describedby={check.status === 'empty' ? undefined : messageId}
             />
-            {check.status === 'valid' && (
+            {confirmValid && check.status === 'valid' && (
                 <p id={messageId} className="field__message field__message--ok">
                     <Icon name="check" size={14} />
                     {t('walletValid')}

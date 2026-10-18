@@ -17,7 +17,8 @@ export const PERIODS = [
 ];
 
 // appendSample returns the buffer with `value` added, dropping the oldest samples
-// beyond `capacity`.
+// beyond `capacity`. It serves the hashrate buffer and the parallel "was the tab
+// hidden" buffer alike.
 export function appendSample(samples, value, capacity = SAMPLE_CAPACITY) {
     const next = [...samples, value];
     return next.length > capacity ? next.slice(next.length - capacity) : next;
@@ -48,6 +49,39 @@ export function windowSeries(samples, windowSize, maxPoints = CHART_POINTS) {
         series.unshift(bucket.reduce((sum, value) => sum + value, 0) / bucket.length);
     }
     return series;
+}
+
+// slowSpans locates the stretches where the tab was hidden (flags[i] is true), as
+// fractions of the chart width, using the same bucketing and alignment as
+// windowSeries so the bands line up with the curve. Each band is widened by half
+// a step so even a single hidden sample stays visible.
+export function slowSpans(flags, windowSize, maxPoints = CHART_POINTS) {
+    const recent = flags.slice(-windowSize);
+    const bucketSize = bucketSizeFor(windowSize, maxPoints);
+    const slots = slotsFor(windowSize, maxPoints);
+
+    const buckets = [];
+    for (let end = recent.length; end > 0; end -= bucketSize) {
+        buckets.unshift(recent.slice(Math.max(0, end - bucketSize), end).some(Boolean));
+    }
+
+    const lastSlot = Math.max(1, slots - 1);
+    const offset = Math.max(0, slots - buckets.length);
+    const half = 0.5 / lastSlot;
+    const spans = [];
+    let start = null;
+    buckets.forEach((slow, index) => {
+        if (slow && start === null) start = index;
+        const closes = start !== null && (!slow || index === buckets.length - 1);
+        if (!closes) return;
+        const last = slow ? index : index - 1;
+        spans.push({
+            from: Math.max(0, (offset + start) / lastSlot - half),
+            to: Math.min(1, (offset + last) / lastSlot + half),
+        });
+        start = null;
+    });
+    return spans;
 }
 
 // chartRange picks the vertical range with a little headroom, so the line never

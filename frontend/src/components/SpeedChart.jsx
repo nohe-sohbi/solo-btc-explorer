@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { windowSeries, slotsFor, chartRange, buildPaths } from '../lib/series.js';
+import { windowSeries, slotsFor, slowSpans, chartRange, buildPaths } from '../lib/series.js';
 import { hashrateScale } from '../lib/format.js';
 
 const WIDTH = 600;
@@ -11,9 +11,11 @@ function formatTick(value) {
 }
 
 // The live computing-speed curve for the chosen period. A dependency-free SVG:
-// the geometry comes from lib/series.js, the colours from CSS classes.
-export default function SpeedChart({ samples, period, t }) {
-    const { paths, ticks } = useMemo(() => {
+// the geometry comes from lib/series.js, the colours from CSS classes. Grey bands
+// mark the time the tab spent in the background, when the browser slows the
+// calculation down.
+export default function SpeedChart({ samples, hiddenFlags, period, t }) {
+    const { paths, ticks, spans } = useMemo(() => {
         const series = windowSeries(samples, period.samples);
         const range = chartRange(series);
         const { divisor } = hashrateScale(range.max);
@@ -21,8 +23,9 @@ export default function SpeedChart({ samples, period, t }) {
         return {
             paths: buildPaths(series, { width: WIDTH, height: HEIGHT, ...range, slots: slotsFor(period.samples) }),
             ticks: [range.max, middle, range.min].map((value) => formatTick(value / divisor)),
+            spans: slowSpans(hiddenFlags, period.samples),
         };
-    }, [samples, period]);
+    }, [samples, hiddenFlags, period]);
 
     return (
         <div className="speed-chart">
@@ -41,6 +44,16 @@ export default function SpeedChart({ samples, period, t }) {
                     {[0, HEIGHT / 2, HEIGHT - 1].map((y) => (
                         <line key={y} className="speed-chart__grid" x1="0" x2={WIDTH} y1={y} y2={y} />
                     ))}
+                    {spans.map((span) => (
+                        <rect
+                            key={span.from}
+                            className="speed-chart__slow"
+                            x={span.from * WIDTH}
+                            width={(span.to - span.from) * WIDTH}
+                            y="0"
+                            height={HEIGHT}
+                        />
+                    ))}
                     <path className="speed-chart__area" d={paths.area} />
                     <path className="speed-chart__line" d={paths.line} />
                 </svg>
@@ -49,6 +62,7 @@ export default function SpeedChart({ samples, period, t }) {
                     <span>{t('chartAgo', { span: t(period.midKey) })}</span>
                     <span>{t('chartNow')}</span>
                 </div>
+                {spans.length > 0 && <p className="speed-chart__note">{t('chartSlowed')}</p>}
             </div>
         </div>
     );

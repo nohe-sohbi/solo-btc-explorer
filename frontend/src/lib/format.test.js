@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatHashrate, formatNumber, formatUptime, splitHashrate, hashrateScale, approximateCount, formatReward, formatSi } from './format.js';
+import { formatHashrate, formatApproxHashrate, shortHash, formatNumber, formatUptime, splitHashrate, hashrateScale, approximateCount, formatReward, formatSi } from './format.js';
 
 describe('formatHashrate', () => {
     it('handles zero / falsy input', () => {
@@ -83,6 +83,25 @@ describe('formatHashrate at industrial scale', () => {
     });
 });
 
+describe('shortHash', () => {
+    it('keeps both ends of a long hash', () => {
+        const hash = '00000000000000000002a8c1d7e4a91c00000000000000000000000000e7d4a91c';
+        expect(shortHash(hash)).toBe('00000000000000000002a8c1…e7d4a91c');
+    });
+
+    it('leaves short values alone', () => {
+        expect(shortHash('abc123')).toBe('abc123');
+    });
+});
+
+describe('formatApproxHashrate', () => {
+    it('marks orders of magnitude with a tilde and no false precision', () => {
+        expect(formatApproxHashrate(2e9)).toBe('≈ 2 GH/s');
+        expect(formatApproxHashrate(2e14)).toBe('≈ 200 TH/s');
+        expect(formatApproxHashrate(2.5e17)).toBe('≈ 250 PH/s');
+    });
+});
+
 describe('hashrateScale', () => {
     it('returns the unit and its divisor', () => {
         expect(hashrateScale(540000)).toEqual({ unit: 'KH/s', divisor: 1e3 });
@@ -97,6 +116,11 @@ describe('formatSi', () => {
         expect(formatSi(1.389e14, 'fr')).toBe('139 T');
         expect(formatSi(4.5e9, 'en')).toBe('4.5 G');
         expect(formatSi(2.5e15, 'fr')).toBe('2,5 P');
+    });
+
+    it('can force decimals so two close values stay distinguishable', () => {
+        expect(formatSi(1.214e14, 'fr', 1)).toBe('121,4 T');
+        expect(formatSi(1.21e14, 'fr', 1)).toBe('121,0 T');
     });
 
     it('handles small and empty values', () => {

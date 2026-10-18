@@ -83,6 +83,13 @@ export function blockHashHex(header) {
     return bytesToHex(reverseBytes(doubleSHA256(header)));
 }
 
+// Block hash a header would have with `nonceHex` (8 hex digits) as its nonce.
+export function candidateHashHex(header, nonceHex) {
+    const candidate = header.slice();
+    writeUint32LE(candidate, 76, parseInt(nonceHex, 16) >>> 0);
+    return blockHashHex(candidate);
+}
+
 function normalize(b) {
     return {
         id: b.id,

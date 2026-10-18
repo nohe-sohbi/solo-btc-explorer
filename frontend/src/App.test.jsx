@@ -218,6 +218,7 @@ describe('dashboard', () => {
         fireEvent.click(screen.getByRole('switch', { name: 'Vue avancée' }));
         expect(screen.getByText('Connexion au pool')).toBeTruthy();
         expect(screen.getByText('Supervision')).toBeTruthy();
+        expect(screen.getByText('113 / 0 · 100 %')).toBeTruthy();
         expect(window.localStorage.getItem('soloforge-advanced')).toBe('true');
     });
 
@@ -319,7 +320,7 @@ describe('a block candidate', () => {
         emit({ message: blockMessage });
 
         const dialog = screen.getByRole('dialog', { name: /bloc candidat/i });
-        expect(dialog.textContent).toContain('121 T');
+        expect(dialog.textContent).toContain('121,4 T');
         fireEvent.keyDown(dialog, { key: 'Escape' });
         expect(screen.queryByRole('dialog')).toBeNull();
     });

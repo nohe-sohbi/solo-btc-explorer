@@ -27,7 +27,7 @@ function StatCell({ title, tech, help, value, caption, children, t }) {
 
 // The main card of the dashboard: the live computing speed (number + curve over a
 // selectable period) and the three counters that matter to a newcomer.
-export default function HashrateCard({ t, lang, running, stats, samples, networkDifficulty }) {
+export default function HashrateCard({ t, lang, running, stats, samples, hiddenFlags, networkDifficulty }) {
     const [periodId, setPeriodId] = useState(PERIODS[0].id);
     const period = PERIODS.find((p) => p.id === periodId);
 
@@ -76,7 +76,7 @@ export default function HashrateCard({ t, lang, running, stats, samples, network
             </div>
 
             {running ? (
-                <SpeedChart samples={samples} period={period} t={t} />
+                <SpeedChart samples={samples} hiddenFlags={hiddenFlags} period={period} t={t} />
             ) : (
                 <div className="empty-state empty-state--dashed speed-card__empty">
                     <div className="empty-state__title">{t('chartEmptyTitle')}</div>

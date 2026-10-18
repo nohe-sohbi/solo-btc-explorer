@@ -14,6 +14,7 @@ export function buildBlockProof(block, { wallet = '', rewardBTC = 0, networkDiff
         block_height: block.height ?? null,
         worker: block.worker_name ?? null,
         nonce: block.nonce ?? null,
+        block_hash: block.hash || null,
         difficulty_reached: block.difficulty ?? null,
         network_difficulty: networkDifficulty > 0 ? networkDifficulty : null,
         wallet_address: wallet || null,

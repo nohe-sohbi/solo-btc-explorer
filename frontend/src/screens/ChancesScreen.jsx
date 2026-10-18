@@ -11,7 +11,7 @@ import {
 } from '../lib/simulator.js';
 import { formatDuration, formatChance, formatOneIn, formatUsd, formatUsdWhole } from '../lib/oddsFormat.js';
 import { formatBigNumber, formatDecimal } from '../lib/bigNumbers.js';
-import { formatHashrate, formatReward, formatSi } from '../lib/format.js';
+import { formatApproxHashrate, formatHashrate, formatReward, formatSi } from '../lib/format.js';
 
 // Texts of the fixed example machines (the browser preset is handled separately).
 const PRESET_TEXT = {
@@ -72,6 +72,7 @@ export default function ChancesScreen({ t, lang, hashrate, network }) {
         return {
             id: preset.id,
             hashrate: isBrowser ? measured : preset.hashrate,
+            rate: isBrowser ? formatHashrate(measured) : formatApproxHashrate(preset.hashrate),
             name: isBrowser ? t('presetBrowserName') : t(PRESET_TEXT[preset.id].name),
             note: isBrowser
                 ? t(hashrate > 0 ? 'presetBrowserNote' : 'presetBrowserNoteIdle')
@@ -129,7 +130,7 @@ export default function ChancesScreen({ t, lang, hashrate, network }) {
                                         <span className="preset__name">{preset.name}</span>
                                         <span className="preset__note">{preset.note}</span>
                                     </span>
-                                    <span className="preset__rate">{formatHashrate(preset.hashrate)}</span>
+                                    <span className="preset__rate">{preset.rate}</span>
                                 </button>
                             );
                         })}

@@ -6,7 +6,7 @@ import { IS_DEMO } from '../config/runtime.js';
 import { checkWallet } from '../lib/walletCheck.js';
 import { computeOdds } from '../lib/odds.js';
 import { formatOneIn } from '../lib/oddsFormat.js';
-import { formatHashrate } from '../lib/format.js';
+import { formatApproxHashrate } from '../lib/format.js';
 import { exportEverything } from '../lib/exportData.js';
 import { track } from '../lib/analytics.js';
 
@@ -63,7 +63,7 @@ function SliderField({ label, note, value, onChange, range, unit, disabled, help
 // Everything configurable, with an explicit save step. While mining, the address,
 // pool and worker count are locked (the code can't change them on the fly); the
 // processor limit stays adjustable live.
-export default function ConfigScreen({ t, lang, session, onRequestReset }) {
+export default function ConfigScreen({ t, lang, session, onRequestReset, onNavigate }) {
     const { config, running, stats, network, history, sessions, actions } = session;
     const [draft, setDraft] = useState(null); // null = nothing edited yet
     const [saving, setSaving] = useState(false);
@@ -81,9 +81,9 @@ export default function ConfigScreen({ t, lang, session, onRequestReset }) {
         if (ok) setDraft(null);
     };
 
-    const exportAll = () => {
-        exportEverything({ shares: history.shares, sessions, blocks: history.blocks });
-        track('export_data', { dataset: 'all', format: 'json' });
+    const exportAll = (format) => {
+        exportEverything({ shares: history.shares, sessions, blocks: history.blocks }, format);
+        track('export_data', { dataset: 'all', format });
     };
 
     const hashrate = stats?.hashrate || 0;
@@ -141,7 +141,7 @@ export default function ConfigScreen({ t, lang, session, onRequestReset }) {
                             range={CPU_RANGE}
                             unit="%"
                             onChange={(value) => update('max_cpu_percent', value)}
-                            help={t(cpuHelpKey(values.max_cpu_percent))}
+                            help={t(cpuHelpKey(values.max_cpu_percent), { n: values.max_cpu_percent })}
                         />
                         <SliderField
                             label={t('cfgWorkersLabel')}
@@ -161,11 +161,11 @@ export default function ConfigScreen({ t, lang, session, onRequestReset }) {
                         <dl className="facts">
                             <div className="facts__row">
                                 <dt>{t('cfgSumSpeed')}</dt>
-                                <dd>{running && hashrate > 0 ? formatHashrate(hashrate) : t('cfgSumSpeedIdle')}</dd>
+                                <dd>{running && hashrate > 0 ? formatApproxHashrate(hashrate) : t('cfgSumSpeedIdle')}</dd>
                             </div>
                             <div className="facts__row">
                                 <dt>{t('cfgSumLoad')}</dt>
-                                <dd>{values.max_cpu_percent} %</dd>
+                                <dd>≈ {values.max_cpu_percent} %</dd>
                             </div>
                             {odds.hasData && (
                                 <div className="facts__row">
@@ -174,14 +174,22 @@ export default function ConfigScreen({ t, lang, session, onRequestReset }) {
                                 </div>
                             )}
                         </dl>
+                        <button type="button" className="link-button link-button--block" onClick={() => onNavigate('chances')}>
+                            {t('cfgExploreChances')}
+                        </button>
                     </section>
 
                     <section className="card panel">
                         <h2 className="panel__title">{t('cfgDataTitle')}</h2>
                         <p className="panel__subtitle">{t(IS_DEMO ? 'cfgDataSubDemo' : 'cfgDataSubServer')}</p>
-                        <button type="button" className="btn btn--outline btn--sm" onClick={exportAll}>
-                            {t('cfgExportAll')}
-                        </button>
+                        <div className="button-row">
+                            <button type="button" className="btn btn--outline btn--sm" onClick={() => exportAll('csv')}>
+                                {t('cfgExportCsv')}
+                            </button>
+                            <button type="button" className="btn btn--outline btn--sm" onClick={() => exportAll('json')}>
+                                {t('cfgExportJson')}
+                            </button>
+                        </div>
                         <div className="danger-zone">
                             <div className="danger-zone__title">{t('cfgDangerTitle')}</div>
                             <p className="danger-zone__text">{t('cfgDangerText')}</p>

@@ -1,11 +1,10 @@
 import { IS_DEMO } from '../config/runtime.js';
 import { useServerProbes } from '../hooks/useServerProbes.js';
-import { formatHashrate, formatSi, formatUptime } from '../lib/format.js';
+import { formatUptime } from '../lib/format.js';
 import { formatInteger } from '../lib/bigNumbers.js';
-import { formatUsdWhole } from '../lib/oddsFormat.js';
 
-// The "advanced view" cards for whoever runs the app: pool connection details,
-// Bitcoin network context and the monitoring endpoints.
+// The "advanced view" cards for whoever runs the app: pool connection details
+// and the monitoring endpoints.
 
 function PanelHeader({ title, t }) {
     return (
@@ -29,6 +28,12 @@ export function PoolPanel({ t, lang, stats, pool, running }) {
     let statusKey = 'advStatusOff';
     if (running && stats?.connected) statusKey = stats.authorized ? 'advStatusOk' : 'advStatusWaiting';
 
+    const accepted = stats?.accepted_shares || 0;
+    const rejected = stats?.rejected_shares || 0;
+    const total = accepted + rejected;
+    const shares = `${formatInteger(accepted, lang)} / ${formatInteger(rejected, lang)}`;
+    const acceptedRate = total > 0 ? ` · ${formatInteger(Math.round((accepted / total) * 100), lang)} %` : '';
+
     return (
         <section className="card panel">
             <PanelHeader title={t('advPoolTitle')} t={t} />
@@ -37,23 +42,8 @@ export function PoolPanel({ t, lang, stats, pool, running }) {
                 <Fact label={t('advStatus')}>
                     <span className={statusKey === 'advStatusOk' ? 'text-success' : 'text-muted'}>{t(statusKey)}</span>
                 </Fact>
-                <Fact label={t('advAccepted')}>{formatInteger(stats?.accepted_shares || 0, lang)}</Fact>
-                <Fact label={t('advRejected')}>{formatInteger(stats?.rejected_shares || 0, lang)}</Fact>
+                <Fact label={t('advShares')}>{shares + acceptedRate}</Fact>
                 <Fact label={t('advMiningTime')}>{formatUptime(stats?.uptime_seconds)}</Fact>
-            </dl>
-        </section>
-    );
-}
-
-export function NetworkPanel({ t, lang, network }) {
-    return (
-        <section className="card panel">
-            <PanelHeader title={t('advNetworkTitle')} t={t} />
-            <dl className="facts">
-                {network.height > 0 && <Fact label={t('advBlockHeight')}>#{formatInteger(network.height, lang)}</Fact>}
-                <Fact label={t('advDifficulty')}>{formatSi(network.difficulty, lang)}</Fact>
-                {network.hashrate > 0 && <Fact label={t('advNetworkHashrate')}>{formatHashrate(network.hashrate)}</Fact>}
-                {network.priceUSD > 0 && <Fact label={t('advBtcPrice')}>{formatUsdWhole(network.priceUSD, lang)}</Fact>}
             </dl>
         </section>
     );

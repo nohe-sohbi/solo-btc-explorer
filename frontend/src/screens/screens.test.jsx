@@ -80,8 +80,8 @@ function makeSession(overrides = {}) {
 }
 
 describe('ConfigScreen', () => {
-    const renderConfig = (session, onRequestReset = vi.fn()) =>
-        render(<ConfigScreen t={t} lang="fr" session={session} onRequestReset={onRequestReset} />);
+    const renderConfig = (session, onRequestReset = vi.fn(), onNavigate = vi.fn()) =>
+        render(<ConfigScreen t={t} lang="fr" session={session} onRequestReset={onRequestReset} onNavigate={onNavigate} />);
 
     it('starts clean: nothing to save', () => {
         renderConfig(makeSession());
@@ -112,11 +112,11 @@ describe('ConfigScreen', () => {
 
     it('describes the CPU limit in words', () => {
         renderConfig(makeSession());
-        expect(screen.getByText(/Équilibré/)).toBeTruthy();
+        expect(screen.getByText(/À 80 %, votre ordinateur reste réactif/)).toBeTruthy();
         fireEvent.change(screen.getByLabelText(/Limite de charge du processeur/), { target: { value: '100' } });
-        expect(screen.getByText(/À fond/)).toBeTruthy();
+        expect(screen.getByText(/À 100 %, votre ordinateur va chauffer/)).toBeTruthy();
         fireEvent.change(screen.getByLabelText(/Limite de charge du processeur/), { target: { value: '30' } });
-        expect(screen.getByText(/Discret/)).toBeTruthy();
+        expect(screen.getByText(/À 30 %, discret/)).toBeTruthy();
     });
 
     it('locks the address, pool and worker count while mining, but not the CPU limit', () => {
@@ -145,9 +145,22 @@ describe('ConfigScreen', () => {
     it('summarises the live settings and the odds', () => {
         renderConfig(makeSession({ running: true, stats: { hashrate: 475260 } }));
         const summary = screen.getByRole('heading', { name: 'Avec ces réglages' }).closest('section');
-        expect(within(summary).getByText('475.26 KH/s')).toBeTruthy();
-        expect(within(summary).getByText('80 %')).toBeTruthy();
+        expect(within(summary).getByText('≈ 475.26 KH/s')).toBeTruthy();
+        expect(within(summary).getByText('≈ 80 %')).toBeTruthy();
         expect(within(summary).getByText(/1 sur 12,\d billions/)).toBeTruthy();
+    });
+
+    it('offers to explore the odds from the summary', () => {
+        const onNavigate = vi.fn();
+        renderConfig(makeSession(), vi.fn(), onNavigate);
+        fireEvent.click(screen.getByRole('button', { name: /Explorer mes chances/ }));
+        expect(onNavigate).toHaveBeenCalledWith('chances');
+    });
+
+    it('offers to export everything as CSV or JSON', () => {
+        renderConfig(makeSession());
+        expect(screen.getByRole('button', { name: 'Tout exporter (CSV)' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'JSON' })).toBeTruthy();
     });
 
     it('hands the reset request to the app', () => {

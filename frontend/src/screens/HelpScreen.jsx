@@ -40,7 +40,7 @@ export default function HelpScreen({ t, lang, network }) {
                 </dl>
             </section>
 
-            <div className="duo">
+            <div className="pair">
                 <section className="card panel">
                     <h2 className="panel__title">{t('safetyTitle')}</h2>
                     <ul className="safety-list">

@@ -4,6 +4,7 @@ import {
     CHART_POINTS,
     PERIODS,
     appendSample,
+    slowSpans,
     windowSeries,
     bucketSizeFor,
     slotsFor,
@@ -154,5 +155,33 @@ describe('PERIODS', () => {
                 expect(DICTIONARIES.en[key], key).toBeTruthy();
             }
         }
+    });
+});
+
+describe('slowSpans', () => {
+    it('is empty when the tab was never hidden', () => {
+        expect(slowSpans([false, false, false], 60)).toEqual([]);
+    });
+
+    it('locates a hidden stretch on the right-aligned time axis', () => {
+        // 60 one-second slots; 10 samples, the 4th to 6th hidden.
+        const flags = [false, false, false, true, true, true, false, false, false, false];
+        const [span] = slowSpans(flags, 60);
+        const lastSlot = 59;
+        const offset = 50;
+        expect(span.from).toBeCloseTo((offset + 3 - 0.5) / lastSlot, 5);
+        expect(span.to).toBeCloseTo((offset + 5 + 0.5) / lastSlot, 5);
+    });
+
+    it('closes a stretch that is still running at the newest sample', () => {
+        const flags = [false, true, true];
+        const spans = slowSpans(flags, 3);
+        expect(spans).toHaveLength(1);
+        expect(spans[0].to).toBe(1);
+    });
+
+    it('reports separate stretches separately', () => {
+        const flags = [true, false, false, false, true, false];
+        expect(slowSpans(flags, 6)).toHaveLength(2);
     });
 });

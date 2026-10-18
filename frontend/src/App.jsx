@@ -212,7 +212,13 @@ export default function App() {
                         />
                     )}
                     {route === 'config' && (
-                        <ConfigScreen t={t} lang={lang} session={session} onRequestReset={() => setResetOpen(true)} />
+                        <ConfigScreen
+                            t={t}
+                            lang={lang}
+                            session={session}
+                            onRequestReset={() => setResetOpen(true)}
+                            onNavigate={navigate}
+                        />
                     )}
                     {route === 'help' && <HelpScreen t={t} lang={lang} network={network} />}
                 </div>

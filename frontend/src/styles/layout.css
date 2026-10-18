@@ -8,13 +8,13 @@
 
 /* ----- Sidebar ----- */
 .sidebar {
-    flex: 1 0 232px;
+    flex: 1 0 224px;
     max-width: 100%;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 32px;
-    padding: 28px 16px 24px;
+    gap: 28px;
+    padding: 24px 14px 20px;
     border-right: 1px solid var(--line);
 }
 
@@ -26,15 +26,15 @@
 }
 
 .sidebar__logo {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     object-fit: cover;
     flex: none;
 }
 
 .sidebar__name {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.01em;
 }
@@ -132,7 +132,7 @@
 .main {
     flex: 999 1 640px;
     min-width: 0;
-    padding: 28px 40px 56px;
+    padding: 20px 32px 40px;
 }
 
 .page {
@@ -190,7 +190,7 @@
 
 .split,
 .duo,
-.trio,
+.pair,
 .tile-row {
     display: flex;
     flex-wrap: wrap;
@@ -199,19 +199,19 @@
 
 /* A wide card next to a narrow one (speed + jackpot). */
 .split > :first-child {
-    flex: 2 1 560px;
+    flex: 2 1 610px;
 }
 
 .split > :last-child {
-    flex: 1 1 320px;
+    flex: 1 1 322px;
 }
 
 .split--even > :first-child {
-    flex: 1 1 420px;
+    flex: 1 1 470px;
 }
 
 .split--even > :last-child {
-    flex: 1.2 1 480px;
+    flex: 1.2 1 530px;
 }
 
 .split--config {
@@ -227,20 +227,20 @@
 }
 
 .duo > :first-child {
-    flex: 1.1 1 460px;
+    flex: 1.1 1 506px;
 }
 
 .duo > :last-child {
-    flex: 1 1 400px;
+    flex: 1 1 446px;
 }
 
-.trio > * {
-    flex: 1 1 320px;
+.pair > * {
+    flex: 1 1 450px;
 }
 
 .split > *,
 .duo > *,
-.trio > * {
+.pair > * {
     min-width: 0;
 }
 

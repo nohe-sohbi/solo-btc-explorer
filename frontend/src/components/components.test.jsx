@@ -10,6 +10,8 @@ import WalletField from './WalletField.jsx';
 import StateBanner from './StateBanner.jsx';
 import ResetDialog from './ResetDialog.jsx';
 import WinDialog from './WinDialog.jsx';
+import SpeedChart from './SpeedChart.jsx';
+import { PERIODS } from '../lib/series.js';
 import { createTranslator } from '../i18n/index.js';
 
 const t = createTranslator('fr');
@@ -207,7 +209,7 @@ describe('ResetDialog', () => {
 
 describe('WinDialog', () => {
     const network = { difficulty: 1.21e14, rewardBTC: 3.125, priceUSD: 98400 };
-    const block = { timestamp: Date.UTC(2026, 9, 18, 21, 41, 7), height: 952143, worker_name: 'cpu-worker-2', nonce: '3fa91c07', difficulty: 1.214e14 };
+    const block = { timestamp: Date.UTC(2026, 9, 18, 21, 41, 7), height: 952143, worker_name: 'cpu-worker-2', nonce: '3fa91c07', hash: '00000000000000000002a8c1d7e4a91c00000000000000000000000000e7d4a91c', difficulty: 1.214e14 };
     const renderWin = (b) => render(
         <WinDialog t={t} lang="fr" theme="light" block={b} network={network} oddsPerDay="1 sur 12,7 billions"
             onClose={() => {}} onExport={() => {}} onOpenHistory={() => {}} />
@@ -220,13 +222,15 @@ describe('WinDialog', () => {
         expect(dialog.textContent).toContain('#952');
         expect(dialog.textContent).toContain('cpu-worker-2');
         expect(dialog.textContent).toContain('0x3fa91c07');
-        expect(dialog.textContent).toContain('seuil : 121 T');
+        expect(dialog.textContent).toContain('121,4 T (seuil : 121,0 T)');
+        expect(dialog.textContent).toContain('00000000000000000002a8c1…e7d4a91c');
     });
 
     it('leaves out details the source did not report', () => {
         renderWin({ timestamp: block.timestamp, difficulty: 1.3e14 });
         const dialog = screen.getByRole('dialog');
         expect(dialog.textContent).not.toContain('Nonce');
+        expect(dialog.textContent).not.toContain('Empreinte');
         expect(dialog.textContent).not.toContain('Bloc visé');
     });
 
@@ -242,5 +246,23 @@ describe('WinDialog', () => {
         expect(onExport).toHaveBeenCalled();
         expect(onOpenHistory).toHaveBeenCalled();
         expect(onClose).toHaveBeenCalled();
+    });
+});
+
+describe('SpeedChart', () => {
+    const samples = [1000, 1100, 200, 150, 1000, 1050];
+
+    it('draws the curve without any band when the tab stayed visible', () => {
+        const { container } = render(<SpeedChart samples={samples} hiddenFlags={samples.map(() => false)} period={PERIODS[0]} t={t} />);
+        expect(container.querySelector('.speed-chart__line').getAttribute('d')).toMatch(/^M/);
+        expect(container.querySelector('.speed-chart__slow')).toBeNull();
+        expect(screen.queryByText(/Zone grisée/)).toBeNull();
+    });
+
+    it('marks the time spent in a background tab and explains it', () => {
+        const hidden = [false, false, true, true, false, false];
+        const { container } = render(<SpeedChart samples={samples} hiddenFlags={hidden} period={PERIODS[0]} t={t} />);
+        expect(container.querySelectorAll('.speed-chart__slow')).toHaveLength(1);
+        expect(screen.getByText(/Zone grisée/)).toBeTruthy();
     });
 });

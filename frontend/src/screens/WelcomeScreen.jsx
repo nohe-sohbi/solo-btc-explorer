@@ -142,6 +142,7 @@ export default function WelcomeScreen({ t, lang, theme, network, savedWallet, on
                         value={wallet}
                         onChange={setDraft}
                         readOnly={exampleMode}
+                        confirmValid={!exampleMode}
                         placeholder={t('walletPlaceholder')}
                         t={t}
                     />

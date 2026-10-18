@@ -40,6 +40,7 @@ export function useMiningSession({ notify, t }) {
     const [history, setHistory] = useState({ shares: [], blocks: [] });
     const [sessions, setSessions] = useState([]);
     const [samples, setSamples] = useState([]);
+    const [hiddenFlags, setHiddenFlags] = useState([]); // per sample: was the tab hidden?
     const [foundBlock, setFoundBlock] = useState(null);
     const [loaded, setLoaded] = useState(false); // first status answer received (or failed)
 
@@ -80,6 +81,7 @@ export function useMiningSession({ notify, t }) {
     useEffect(() => {
         if (running && stats && typeof stats.hashrate === 'number') {
             setSamples((current) => appendSample(current, stats.hashrate));
+            setHiddenFlags((current) => appendSample(current, document.hidden));
         }
     }, [stats, running]);
 
@@ -243,6 +245,7 @@ export function useMiningSession({ notify, t }) {
         history,
         sessions,
         samples,
+        hiddenFlags,
         feed,
         foundBlock,
         network,

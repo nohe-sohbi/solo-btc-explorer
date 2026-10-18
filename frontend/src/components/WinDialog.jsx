@@ -3,7 +3,7 @@ import Art from './Art.jsx';
 import Rich from './Rich.jsx';
 import { IS_DEMO } from '../config/runtime.js';
 import { formatInteger, LOCALES } from '../lib/bigNumbers.js';
-import { formatSi, formatReward } from '../lib/format.js';
+import { formatSi, formatReward, shortHash } from '../lib/format.js';
 
 function Detail({ label, children }) {
     return (
@@ -24,7 +24,7 @@ export default function WinDialog({ t, lang, theme, block, network, oddsPerDay, 
 
     return (
         <Dialog
-            title={t('winTitle')}
+            title={t(IS_DEMO ? 'winTitleDemo' : 'winTitle')}
             eyebrow={<span className="badge badge--accent">{t('winBadge')}</span>}
             closeLabel={t('dialogClose')}
             onClose={onClose}
@@ -40,11 +40,17 @@ export default function WinDialog({ t, lang, theme, block, network, oddsPerDay, 
                 {block.difficulty > 0 && (
                     <Detail label={t('winDifficulty')}>
                         <span className="text-accent">
-                            {formatSi(block.difficulty, lang)} ({t('winThreshold', { value: formatSi(network.difficulty, lang) })})
+                            {formatSi(block.difficulty, lang, 1)} ({t('winThreshold', { value: formatSi(network.difficulty, lang, 1) })})
                         </span>
                     </Detail>
                 )}
                 {block.nonce && <Detail label={t('winNonce')}>0x{block.nonce}</Detail>}
+                {block.hash && (
+                    <div className="facts__row facts__row--stacked">
+                        <dt>{t('winHash')}</dt>
+                        <dd className="facts__hash">{shortHash(block.hash)}</dd>
+                    </div>
+                )}
             </dl>
 
             <p className="note note--accent">

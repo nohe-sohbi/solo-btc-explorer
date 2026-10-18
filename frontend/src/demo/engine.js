@@ -2,7 +2,7 @@
 // WebWorkers and exposes a surface mirroring the Go backend's REST + WebSocket API
 // (backend/internal/api/server.go), so the React hooks can talk to it transparently.
 
-import { buildBlockHeader, fetchLatestBlock, fetchBtcPrice, FALLBACK_BLOCK } from './header.js';
+import { buildBlockHeader, candidateHashHex, fetchLatestBlock, fetchBtcPrice, FALLBACK_BLOCK } from './header.js';
 import { blockSubsidy } from '../lib/odds.js';
 import { loadSnapshot, saveSnapshot, clearSnapshot } from './persistence.js';
 import { EXAMPLE_WALLET_ADDRESS } from '../config/runtime.js';
@@ -216,6 +216,7 @@ export class DemoEngine {
                     prev_hash: this.block ? this.block.id : '',
                     worker_name: rec.name,
                     nonce: msg.nonce,
+                    hash: this.block ? candidateHashHex(this.block.header, msg.nonce) : '',
                     difficulty: msg.difficulty,
                 };
                 this.blockHistory.push(entry);

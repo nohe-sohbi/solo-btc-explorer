@@ -35,6 +35,18 @@ export function formatHashrate(hash) {
     return `${value.toFixed(2)} ${unit}`;
 }
 
+// formatApproxHashrate renders an order of magnitude, not a measurement:
+// 2e9 -> "≈ 2 GH/s" (no decimals to pretend to precision).
+export function formatApproxHashrate(hash) {
+    const { value, unit } = splitHashrate(hash);
+    return `≈ ${Number(value.toFixed(2))} ${unit}`;
+}
+
+// shortHash keeps both ends of a long hash: "00000000000000000002a8c1…e7d4a91c".
+export function shortHash(hash) {
+    return hash.length > 36 ? `${hash.slice(0, 24)}…${hash.slice(-8)}` : hash;
+}
+
 // formatNumber renders large counters compactly (e.g. 1.23M).
 export function formatNumber(num) {
     if (!num) return '0';
@@ -79,12 +91,17 @@ const SI_LETTERS = [
 
 // formatSi renders a large unitless quantity with a one-letter SI suffix, e.g. the
 // network difficulty: 1.21e14 -> "121 T".
-export function formatSi(value, lang) {
+export function formatSi(value, lang, minDecimals = 0) {
     if (!(value > 0)) return '0';
     for (const [letter, divisor] of SI_LETTERS) {
         if (value >= divisor) {
             const scaled = value / divisor;
-            return `${formatDecimal(scaled, lang, scaled < 10 ? 2 : scaled < 100 ? 1 : 0)} ${letter}`;
+            const decimals = Math.max(minDecimals, scaled < 10 ? 2 : scaled < 100 ? 1 : 0);
+            const text = scaled.toLocaleString(LOCALES[lang] || LOCALES.en, {
+                minimumFractionDigits: minDecimals,
+                maximumFractionDigits: decimals,
+            });
+            return `${text} ${letter}`;
         }
     }
     return formatDecimal(value, lang, 2);

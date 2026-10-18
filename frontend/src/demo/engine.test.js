@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('./header.js', () => ({
     FALLBACK_BLOCK: { id: 'fallback-id', height: 100, difficulty: 1e12 },
     buildBlockHeader: () => ({ buffer: new ArrayBuffer(80) }),
+    candidateHashHex: (header, nonce) => `hash-of-${nonce}`,
     fetchLatestBlock: vi.fn(),
     fetchBtcPrice: vi.fn().mockResolvedValue(0),
 }));
@@ -90,6 +91,7 @@ describe('DemoEngine block candidates', () => {
             prev_hash: 'live-id',
             worker_name: 'cpu-worker-2',
             nonce: '3fa91c07',
+            hash: 'hash-of-3fa91c07',
             difficulty: 1.214e14,
         });
         expect(events).toHaveLength(1);

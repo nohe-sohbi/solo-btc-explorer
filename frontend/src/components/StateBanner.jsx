@@ -4,7 +4,7 @@ const ICONS = { info: 'info', warn: 'warning', error: 'warning' };
 
 // A banner for a situation the user should know about. Every banner follows the
 // same three-part pattern: say what's happening (title), reassure and explain
-// (body), offer at most one action.
+// (body), offer at most one action (gold when it fixes things, outlined for errors).
 //   tone: 'info' | 'warn' | 'error'
 export default function StateBanner({ tone, title, body, action, onDismiss, dismissLabel, spinning = false }) {
     return (
@@ -15,7 +15,11 @@ export default function StateBanner({ tone, title, body, action, onDismiss, dism
                 <div className="banner__body">{body}</div>
             </div>
             {action && (
-                <button type="button" className="btn btn--primary btn--sm" onClick={action.onClick}>
+                <button
+                    type="button"
+                    className={`btn banner__action ${tone === 'error' ? 'btn--outline' : 'btn--primary'}`}
+                    onClick={action.onClick}
+                >
                     {action.label}
                 </button>
             )}
