@@ -35,6 +35,15 @@ export function formatHashrate(hash) {
     return `${value.toFixed(2)} ${unit}`;
 }
 
+// formatHashrateReadable renders a speed the way the simulator shows it: the
+// language's decimal mark and only the digits that mean something
+// (475 KH/s, 1,81 MH/s, 12,5 GH/s).
+export function formatHashrateReadable(hash, lang) {
+    const { value, unit } = splitHashrate(hash);
+    const digits = value < 10 ? 2 : value < 100 ? 1 : 0;
+    return `${value.toLocaleString(LOCALES[lang] || LOCALES.en, { maximumFractionDigits: digits })} ${unit}`;
+}
+
 // formatApproxHashrate renders an order of magnitude, not a measurement:
 // 2e9 -> "≈ 2 GH/s" (no decimals to pretend to precision).
 export function formatApproxHashrate(hash) {

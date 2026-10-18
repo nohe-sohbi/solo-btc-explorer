@@ -28,6 +28,13 @@ describe('Rich', () => {
         expect(container.textContent).toBe('a b c d');
     });
 
+    it('renders `marked` parts in the monospace font, also inside emphasis', () => {
+        const { container } = render(<p><Rich text="a `b` **c `d`**" /></p>);
+        expect(container.querySelectorAll('code')).toHaveLength(2);
+        expect(container.querySelector('strong code').textContent).toBe('d');
+        expect(container.textContent).toBe('a b c d');
+    });
+
     it('never interprets HTML in the text', () => {
         const { container } = render(<p><Rich text="<img src=x onerror=alert(1)> **ok**" /></p>);
         expect(container.querySelector('img')).toBeNull();

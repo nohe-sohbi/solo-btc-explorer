@@ -673,6 +673,10 @@
     font-size: 14px;
 }
 
+.result .facts {
+    margin-top: 6px;
+}
+
 .result__horizons-title {
     margin-top: 10px;
     font-size: 13.5px;
@@ -695,6 +699,11 @@
 .how__columns strong {
     color: var(--text);
     font-weight: 600;
+}
+
+.how__columns code {
+    color: var(--text);
+    font-family: var(--font-mono);
 }
 
 /* ----- History ----- */

@@ -177,7 +177,7 @@ describe('ChancesScreen', () => {
 
     it('starts from the visitor\'s measured speed and shows the odds', () => {
         renderChances();
-        expect(screen.getByText('475.26 KH/s', { selector: 'output' })).toBeTruthy();
+        expect(screen.getByText('475 KH/s', { selector: 'output' })).toBeTruthy();
         expect(screen.getByText(/34,\d milliards d'années/)).toBeTruthy();
         expect(screen.getByText(/2,5 fois l'âge de l'univers/)).toBeTruthy();
         expect(screen.getByText(/fois moins probable que de gagner à l'EuroMillions/)).toBeTruthy();
@@ -185,14 +185,14 @@ describe('ChancesScreen', () => {
 
     it('uses a typical figure when nothing was measured yet', () => {
         renderChances(0);
-        expect(screen.getByText('475.00 KH/s', { selector: 'output' })).toBeTruthy();
+        expect(screen.getByText('475 KH/s', { selector: 'output' })).toBeTruthy();
         expect(screen.getByText(/Valeur typique/)).toBeTruthy();
     });
 
     it('recomputes everything when an example machine is picked', () => {
         renderChances();
         fireEvent.click(screen.getByRole('button', { name: /Un mineur ASIC récent/ }));
-        expect(screen.getByText('200.00 TH/s', { selector: 'output' })).toBeTruthy();
+        expect(screen.getByText('200 TH/s', { selector: 'output' })).toBeTruthy();
         expect(screen.getByText(/2[34] ans|jours|mois/)).toBeTruthy();
         expect(screen.getByRole('button', { name: /Un mineur ASIC récent/ }).getAttribute('aria-pressed')).toBe('true');
         expect(screen.getByRole('button', { name: /Votre navigateur/ }).getAttribute('aria-pressed')).toBe('false');
@@ -202,7 +202,7 @@ describe('ChancesScreen', () => {
         renderChances();
         const slider = screen.getByLabelText('Vitesse de calcul simulée');
         fireEvent.change(slider, { target: { value: '9' } });
-        expect(screen.getByText('1.00 GH/s', { selector: 'output' })).toBeTruthy();
+        expect(screen.getByText('1 GH/s', { selector: 'output' })).toBeTruthy();
     });
 
     it('lists the chance over four horizons', () => {
@@ -214,7 +214,9 @@ describe('ChancesScreen', () => {
 
     it('explains the maths with the live difficulty', () => {
         renderChances();
-        expect(screen.getByText(/aujourd'hui 121 T/)).toBeTruthy();
+        const difficulty = screen.getByText('121 T');
+        expect(difficulty.tagName).toBe('CODE');
+        expect(difficulty.parentElement.textContent).toMatch(/aujourd'hui 121 T/);
     });
 });
 

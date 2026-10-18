@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatHashrate, formatApproxHashrate, shortHash, formatNumber, formatUptime, splitHashrate, hashrateScale, approximateCount, formatReward, formatSi } from './format.js';
+import { formatHashrate, formatApproxHashrate, formatHashrateReadable, shortHash, formatNumber, formatUptime, splitHashrate, hashrateScale, approximateCount, formatReward, formatSi } from './format.js';
 
 describe('formatHashrate', () => {
     it('handles zero / falsy input', () => {
@@ -91,6 +91,19 @@ describe('shortHash', () => {
 
     it('leaves short values alone', () => {
         expect(shortHash('abc123')).toBe('abc123');
+    });
+});
+
+describe('formatHashrateReadable', () => {
+    it('keeps only the meaningful digits', () => {
+        expect(formatHashrateReadable(475260, 'en')).toBe('475 KH/s');
+        expect(formatHashrateReadable(12.5e9, 'en')).toBe('12.5 GH/s');
+        expect(formatHashrateReadable(2e9, 'en')).toBe('2 GH/s');
+    });
+
+    it('uses the decimal mark of the language', () => {
+        expect(formatHashrateReadable(1.81e6, 'fr')).toBe('1,81 MH/s');
+        expect(formatHashrateReadable(1.81e6, 'en')).toBe('1.81 MH/s');
     });
 });
 

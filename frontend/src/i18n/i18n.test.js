@@ -12,6 +12,7 @@ const sources = Object.entries(
 
 const placeholders = (text) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 const boldMarkers = (text) => (text.match(/\*\*/g) || []).length;
+const codeMarkers = (text) => (text.match(/`/g) || []).length;
 
 describe('interpolate / translate', () => {
     it('replaces known placeholders and keeps unknown ones visible', () => {
@@ -46,6 +47,7 @@ describe('dictionaries', () => {
                 const other = DICTIONARIES[lang][key];
                 expect(placeholders(other), `placeholders of "${key}" in ${lang}`).toEqual(placeholders(text));
                 expect(boldMarkers(other), `bold markers of "${key}" in ${lang}`).toBe(boldMarkers(text));
+                expect(codeMarkers(other), `code markers of "${key}" in ${lang}`).toBe(codeMarkers(text));
             }
         }
     });
@@ -54,6 +56,7 @@ describe('dictionaries', () => {
         for (const lang of LANGUAGES) {
             for (const [key, text] of Object.entries(DICTIONARIES[lang])) {
                 expect(boldMarkers(text) % 2, `"${key}" in ${lang}`).toBe(0);
+                expect(codeMarkers(text) % 2, `"${key}" in ${lang}`).toBe(0);
             }
         }
     });

@@ -266,10 +266,10 @@ export default {
     scaleWithinReach: "c'est à la portée d'un vrai mineur… qui se regroupe d'ordinaire en pool pour lisser les gains",
     simNoData: "Les chances ne peuvent pas être calculées : la difficulté du réseau n'est pas encore connue.",
     howTitle: "Comment c'est calculé",
-    howP1: "Pour valider un bloc, il faut tomber sur une empreinte plus petite qu'un seuil fixé par le réseau. La **difficulté** (aujourd'hui {difficulty}) dit à quel point ce seuil est bas.",
-    howP2: "Temps moyen = **difficulté × 2³² ÷ vitesse de calcul**. Doubler la vitesse divise donc le temps par deux. Les chances de chaque essai ne dépendent pas des précédents : rien ne « se rapproche ».",
-    howP3: "Valeurs du réseau : récompense **{reward} BTC**, prix **{price}**, données de mempool.space. Les exemples de machines sont des ordres de grandeur.",
-    howP3NoPrice: "Valeurs du réseau : récompense **{reward} BTC**, données de mempool.space. Les exemples de machines sont des ordres de grandeur.",
+    howP1: "Pour valider un bloc, il faut tomber sur une empreinte plus petite qu'un seuil fixé par le réseau. La **difficulté** (aujourd'hui `{difficulty}`) dit à quel point ce seuil est bas.",
+    howP2: "Temps moyen = `difficulté × 2³² ÷ vitesse de calcul`. Doubler la vitesse divise donc le temps par deux. Les chances de chaque essai ne dépendent pas des précédents : rien ne « se rapproche ».",
+    howP3: "Valeurs du réseau : récompense `{reward} BTC`, prix `{price}`, données de mempool.space. Les exemples de machines sont des ordres de grandeur.",
+    howP3NoPrice: "Valeurs du réseau : récompense `{reward} BTC`, données de mempool.space. Les exemples de machines sont des ordres de grandeur.",
 
     // ----- Historique -----
     histProofs: "Preuves de travail",
