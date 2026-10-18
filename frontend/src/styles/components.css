@@ -1001,7 +1001,7 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: 8vh 24px 24px;
+    padding: min(100px, 11.2vh) 24px 24px;
     overflow-y: auto;
     background: var(--backdrop);
 }
@@ -1075,6 +1075,19 @@
 
 .dialog__actions--end {
     justify-content: flex-end;
+}
+
+.dialog__actions--end .btn {
+    padding: 0 16px;
+}
+
+/* The win dialog's buttons are a little taller than the confirmation's. */
+.dialog__actions--tall .btn {
+    height: 42px;
+}
+
+.dialog__actions--tall .btn--primary {
+    padding: 0 20px;
 }
 
 /* Without artwork the close button sits next to the title: keep them apart. */

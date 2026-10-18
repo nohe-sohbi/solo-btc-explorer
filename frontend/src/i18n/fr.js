@@ -359,7 +359,7 @@ export default {
     winBadge: "Événement rarissime",
     winTitle: "Un bloc candidat vient d'être trouvé !",
     winTitleDemo: "Votre navigateur a trouvé un bloc candidat !",
-    winBody: "Une empreinte atteint la difficulté du réseau Bitcoin. Vos chances étaient d'environ {odds} par jour, et c'est tombé sur vous.",
+    winBody: "Une empreinte atteint la difficulté du réseau Bitcoin. C'était 1 chance sur {odds}, et c'est tombé sur vous.",
     winBlock: "Bloc visé",
     winFoundBy: "Trouvé par",
     winDifficulty: "Difficulté atteinte",

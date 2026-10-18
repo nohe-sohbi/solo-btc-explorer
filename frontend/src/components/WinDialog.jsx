@@ -57,7 +57,7 @@ export default function WinDialog({ t, lang, theme, block, network, oddsPerDay, 
                 <Rich text={t(IS_DEMO ? 'winDemoNote' : 'winServerNote', { reward })} />
             </p>
 
-            <div className="dialog__actions">
+            <div className="dialog__actions dialog__actions--tall">
                 <button type="button" className="btn btn--primary" onClick={onExport}>
                     {t('winExport')}
                 </button>

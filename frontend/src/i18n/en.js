@@ -360,7 +360,7 @@ export default {
     winBadge: "Extremely rare event",
     winTitle: "A candidate block was just found!",
     winTitleDemo: "Your browser found a block candidate!",
-    winBody: "A fingerprint reaches the Bitcoin network's difficulty. Your odds were about {odds} per day, and it landed on you.",
+    winBody: "A fingerprint reaches the Bitcoin network's difficulty. It was a 1 in {odds} chance, and it landed on you.",
     winBlock: "Target block",
     winFoundBy: "Found by",
     winDifficulty: "Difficulty reached",

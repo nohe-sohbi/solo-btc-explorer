@@ -220,14 +220,14 @@ describe('WinDialog', () => {
     const network = { difficulty: 1.21e14, rewardBTC: 3.125, priceUSD: 98400 };
     const block = { timestamp: Date.UTC(2026, 9, 18, 21, 41, 7), height: 952143, worker_name: 'cpu-worker-2', nonce: '3fa91c07', hash: '00000000000000000002a8c1d7e4a91c00000000000000000000000000e7d4a91c', difficulty: 1.214e14 };
     const renderWin = (b) => render(
-        <WinDialog t={t} lang="fr" theme="light" block={b} network={network} oddsPerDay="1 sur 12,7 billions"
+        <WinDialog t={t} lang="fr" theme="light" block={b} network={network} oddsPerDay="12,7 billions"
             onClose={() => {}} onExport={() => {}} onOpenHistory={() => {}} />
     );
 
     it('announces the candidate block with its details and the odds', () => {
         renderWin(block);
         const dialog = screen.getByRole('dialog', { name: /bloc candidat/i });
-        expect(dialog.textContent).toContain('1 sur 12,7 billions');
+        expect(dialog.textContent).toContain('1 chance sur 12,7 billions');
         expect(dialog.textContent).toContain('#952');
         expect(dialog.textContent).toContain('cpu-worker-2');
         expect(dialog.textContent).toContain('0x3fa91c07');

@@ -17,8 +17,7 @@ import { useBackgroundNotice } from './hooks/useBackgroundNotice.js';
 import { IS_DEMO } from './config/runtime.js';
 import { checkWallet } from './lib/walletCheck.js';
 import { computeOdds } from './lib/odds.js';
-import { formatOneIn } from './lib/oddsFormat.js';
-import { formatInteger } from './lib/bigNumbers.js';
+import { formatBigNumber, formatInteger } from './lib/bigNumbers.js';
 import { approximateCount, formatUptime } from './lib/format.js';
 import { buildBlockProof } from './lib/blockProof.js';
 import { exportEverything, triggerDownload, timestampedName } from './lib/exportData.js';
@@ -235,7 +234,7 @@ export default function App() {
                     theme={theme}
                     block={session.foundBlock}
                     network={network}
-                    oddsPerDay={formatOneIn(odds.probPerDay, lang, t)}
+                    oddsPerDay={odds.probPerDay > 0 ? formatBigNumber(1 / odds.probPerDay, lang) : '—'}
                     onClose={actions.dismissFoundBlock}
                     onExport={exportBlockProof}
                     onOpenHistory={openFoundBlockInHistory}
