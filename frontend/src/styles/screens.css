@@ -470,6 +470,7 @@
 
 .stat-cell__value {
     margin-top: 2px;
+    line-height: 1.4;
     font-family: var(--font-mono);
     font-size: 26px;
     font-weight: 500;

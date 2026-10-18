@@ -553,6 +553,10 @@
     background: var(--track);
 }
 
+.progress + .stat-cell__caption {
+    margin-top: 4px;
+}
+
 .progress__fill {
     display: block;
     min-width: 6px;
