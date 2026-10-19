@@ -697,6 +697,11 @@
     margin-top: 6px;
 }
 
+.result .note {
+    margin-top: 14px;
+    padding: 12px 14px;
+}
+
 .result__horizons-title {
     margin-top: 10px;
     font-size: 13.5px;
@@ -724,6 +729,7 @@
 .how__columns code {
     color: var(--text);
     font-family: var(--font-mono);
+    font-size: 1em;
 }
 
 /* ----- History ----- */

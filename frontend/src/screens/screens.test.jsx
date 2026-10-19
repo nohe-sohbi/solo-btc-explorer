@@ -147,7 +147,7 @@ describe('ConfigScreen', () => {
         const summary = screen.getByRole('heading', { name: 'Avec ces réglages' }).closest('section');
         expect(within(summary).getByText('≈ 475.26 KH/s')).toBeTruthy();
         expect(within(summary).getByText('≈ 80 %')).toBeTruthy();
-        expect(within(summary).getByText(/1 sur 1\d billions/)).toBeTruthy();
+        expect(within(summary).getByText(/1 sur 1\d,\d billions/)).toBeTruthy();
     });
 
     it('offers to explore the odds from the summary', () => {

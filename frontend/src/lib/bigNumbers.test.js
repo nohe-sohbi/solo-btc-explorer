@@ -22,14 +22,14 @@ describe('formatBigNumber', () => {
     });
 
     it('uses the French long scale (1e12 = billion, 1e9 = milliard)', () => {
-        expect(formatBigNumber(12.7e12, 'fr')).toBe('13 billions');
-        expect(formatBigNumber(34.7e9, 'fr')).toBe('35 milliards');
+        expect(formatBigNumber(12.7e12, 'fr')).toBe('12,7 billions');
+        expect(formatBigNumber(34.7e9, 'fr')).toBe('34,7 milliards');
         expect(formatBigNumber(4e15, 'fr')).toBe('4 billiards');
     });
 
     it('uses the English short scale (1e12 = trillion, 1e9 = billion)', () => {
-        expect(formatBigNumber(12.7e12, 'en')).toBe('13 trillion');
-        expect(formatBigNumber(34.7e9, 'en')).toBe('35 billion');
+        expect(formatBigNumber(12.7e12, 'en')).toBe('12.7 trillion');
+        expect(formatBigNumber(34.7e9, 'en')).toBe('34.7 billion');
     });
 
     it('only pluralises in French and only from 2 upwards', () => {

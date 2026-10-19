@@ -973,6 +973,7 @@
 .banner__body code {
     color: var(--text);
     font-family: var(--font-mono);
+    font-size: 1em;
 }
 
 .banner__body {

@@ -8,6 +8,10 @@ import { formatBigNumber, formatInteger } from '../lib/bigNumbers.js';
 
 const MILLION = 1e6;
 
+// The mockup spells this count with a regular-width space; a no-break one keeps it
+// the same width without letting the number wrap in the middle.
+const spacedCount = (n, lang) => formatInteger(n, lang).replace(/\u202f/g, '\u00a0');
+
 // One of the three counters under the chart: a plain-language name, the technical
 // term next to it, a "?" explanation, the value and a one-line caption.
 function StatCell({ title, tech, help, value, caption, children, t }) {
@@ -62,7 +66,7 @@ export default function HashrateCard({ t, lang, running, stats, samples, hiddenF
                     </div>
                     <div className="speed-card__caption">
                         {running && hashrate > 0
-                            ? t('speedCaption', { rate: formatInteger(approximateCount(hashrate), lang) })
+                            ? t('speedCaption', { rate: spacedCount(approximateCount(hashrate), lang) })
                             : t('speedCaptionIdle')}
                     </div>
                 </div>

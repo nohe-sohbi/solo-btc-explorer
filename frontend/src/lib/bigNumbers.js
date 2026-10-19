@@ -44,15 +44,15 @@ export function formatDecimal(n, lang, maxFractionDigits = 1) {
 }
 
 // formatBigNumber renders n with a named scale once it reaches a million, with
-// one decimal below ten and none above (as in the design): 3.2e12 -> "3,2 billions"
-// (fr) / "3.2 trillion" (en), 12.7e12 -> "13 billions". Smaller values are plain
+// one decimal below a hundred and none above (as in the design): 3.2e12 -> "3,2 billions"
+// (fr) / "3.2 trillion" (en), 12.7e12 -> "12,7 billions". Smaller values are plain
 // grouped integers.
 export function formatBigNumber(n, lang) {
     const scales = SCALES[lang] || SCALES.en;
     for (const [threshold, word] of scales) {
         if (n >= threshold) {
             const scaled = n / threshold;
-            const text = formatDecimal(scaled, lang, scaled < 10 ? 1 : 0);
+            const text = formatDecimal(scaled, lang, scaled < 100 ? 1 : 0);
             const plural = PLURALISES[lang] && scaled >= 2 ? 's' : '';
             return `${text} ${word}${plural}`;
         }
