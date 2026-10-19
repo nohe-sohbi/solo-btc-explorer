@@ -279,10 +279,10 @@ describe('HistoryScreen', () => {
         expect(screen.getByText("Aucune preuve pour l'instant")).toBeTruthy();
     });
 
-    it('says how many proofs are shown versus exported', () => {
+    it('says how many proofs are shown and points to the export', () => {
         const shares = Array.from({ length: 50 }, (_, i) => share(i, 0.0001));
         render(<HistoryScreen {...baseProps} history={{ shares, blocks: [] }} />);
-        expect(screen.getByText(/Les 20 dernières preuves sont affichées ; l'export contient les 50 dernières/)).toBeTruthy();
+        expect(screen.getByText(/Les 20 dernières preuves sont affichées\. Exportez pour conserver tout l'historique/)).toBeTruthy();
     });
 });
 

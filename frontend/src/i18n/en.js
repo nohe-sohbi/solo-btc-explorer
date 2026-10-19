@@ -300,15 +300,15 @@ export default {
     statusCandidateDemo: "Candidate · demo",
     statusCandidate: "Candidate",
     badgeRecord: "Record",
-    sharesFootnote: "The last {shown} proofs are shown; the export contains the last {exported}.",
+    sharesFootnote: "The last {shown} proofs are shown. Export to keep the whole history.",
     sharesEmptyTitle: "No proofs yet",
     sharesEmptyBody: "Start mining: proofs of work show up here as the computation goes.",
     sessionsEmptyTitle: "No finished session",
     sessionsEmptyBody: "A session is recorded when you stop mining.",
     blocksEmptyTitle: "No block found… yet",
     blocksEmptyBody: "That's normal: at this speed it takes billions of years on average. If it ever happens, the block will appear here with its proof, ready to export.",
-    historyStorageDemo: "In demo mode, history is kept in your browser (it disappears if you clear its data).",
-    historyStorageServer: "History is saved to the server's disk regularly.",
+    historyStorageDemo: "In demo mode, history is kept in your browser (it disappears if you clear its data). With the server, it is saved to disk every 30 seconds.",
+    historyStorageServer: "History is saved to the server's disk every 30 seconds.",
 
     // ----- Settings -----
     cfgWalletTitle: "Your Bitcoin address",

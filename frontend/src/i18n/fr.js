@@ -299,15 +299,15 @@ export default {
     statusCandidateDemo: "Candidat · démo",
     statusCandidate: "Candidat",
     badgeRecord: "Record",
-    sharesFootnote: "Les {shown} dernières preuves sont affichées ; l'export contient les {exported} dernières.",
+    sharesFootnote: "Les {shown} dernières preuves sont affichées. Exportez pour conserver tout l'historique.",
     sharesEmptyTitle: "Aucune preuve pour l'instant",
     sharesEmptyBody: "Démarrez le mining : les preuves de travail apparaissent ici au fil du calcul.",
     sessionsEmptyTitle: "Aucune session terminée",
     sessionsEmptyBody: "Une session est enregistrée quand vous arrêtez le mining.",
     blocksEmptyTitle: "Aucun bloc trouvé… pour l'instant",
     blocksEmptyBody: "C'est normal : il faut en moyenne des milliards d'années à cette vitesse. Si cela arrive, le bloc apparaîtra ici avec sa preuve, prête à exporter.",
-    historyStorageDemo: "En mode démo, l'historique est conservé dans votre navigateur (il disparaît si vous videz ses données).",
-    historyStorageServer: "L'historique est enregistré régulièrement sur le disque du serveur.",
+    historyStorageDemo: "En mode démo, l'historique est conservé dans votre navigateur (il disparaît si vous videz ses données). Avec le serveur, il est enregistré toutes les 30 secondes sur disque.",
+    historyStorageServer: "L'historique est enregistré toutes les 30 secondes sur le disque du serveur.",
 
     // ----- Configuration -----
     cfgWalletTitle: "Votre adresse Bitcoin",

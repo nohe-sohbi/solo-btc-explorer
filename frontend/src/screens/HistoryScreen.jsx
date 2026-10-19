@@ -57,7 +57,7 @@ export default function HistoryScreen({ t, lang, stats, history, sessions, tab, 
             </div>
 
             <section className="card panel">
-                <div className="panel__header">
+                <div className="panel__header panel__header--center">
                     <Segmented
                         variant="tabs"
                         label={t('histTabsLabel')}
@@ -122,10 +122,7 @@ export default function HistoryScreen({ t, lang, stats, history, sessions, tab, 
                                 </table>
                             </div>
                             <p className="panel__footnote">
-                                {t('sharesFootnote', {
-                                    shown: Math.min(SHARES_SHOWN, history.shares.length),
-                                    exported: history.shares.length,
-                                })}
+                                {t('sharesFootnote', { shown: Math.min(SHARES_SHOWN, history.shares.length) })}
                             </p>
                         </>
                     ))}
