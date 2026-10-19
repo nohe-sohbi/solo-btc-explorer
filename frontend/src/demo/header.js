@@ -6,20 +6,6 @@ import { doubleSHA256 } from './sha256.js';
 const MEMPOOL_BLOCKS_URL = 'https://mempool.space/api/v1/blocks';
 const MEMPOOL_PRICES_URL = 'https://mempool.space/api/v1/prices';
 
-// A real recent block, used as a fallback when the public API is unreachable so the
-// demo always works (even offline). Fields match the mempool.space /api/v1/blocks shape.
-export const FALLBACK_BLOCK = {
-    id: '0000000000000000000101d2b92629239ca44b1adf001c8c09ce90b8db3c81d6',
-    height: 952139,
-    version: 537919488,
-    timestamp: 1780425483,
-    bits: 386008719,
-    nonce: 1495947851,
-    merkle_root: '3203c93c0ea202e2629420ffa647b577e6c3798ca8d57330da62ef7527ec0a19',
-    previousblockhash: '000000000000000000018806025f5d31a7b02df72582b8fe808a8100db9f9eea',
-    difficulty: 138955357012247.3,
-};
-
 export function hexToBytes(hex) {
     const out = new Uint8Array(hex.length / 2);
     for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
@@ -81,6 +67,13 @@ export function difficultyExact(header) {
 // Display (big-endian) hex of a header's double-SHA256 — i.e. the block hash as shown by explorers.
 export function blockHashHex(header) {
     return bytesToHex(reverseBytes(doubleSHA256(header)));
+}
+
+// Block hash a header would have with `nonceHex` (8 hex digits) as its nonce.
+export function candidateHashHex(header, nonceHex) {
+    const candidate = header.slice();
+    writeUint32LE(candidate, 76, parseInt(nonceHex, 16) >>> 0);
+    return blockHashHex(candidate);
 }
 
 function normalize(b) {

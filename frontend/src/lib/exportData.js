@@ -69,6 +69,16 @@ export const SESSION_COLUMNS = [
     { key: 'best_difficulty', label: 'best_difficulty' },
 ];
 
+export const BLOCK_COLUMNS = [
+    { key: 'timestamp', label: 'timestamp' },
+    { key: 'height', label: 'height' },
+    { key: 'prev_hash', label: 'prev_hash' },
+    { key: 'worker_name', label: 'worker_name' },
+    { key: 'nonce', label: 'nonce' },
+    { key: 'hash', label: 'hash' },
+    { key: 'difficulty', label: 'difficulty' },
+];
+
 // exportDataset downloads `rows` as CSV or JSON. `format` is 'csv' | 'json'.
 export function exportDataset(dataset, rows, columns, format) {
     if (format === 'json') {
@@ -83,5 +93,21 @@ export function exportDataset(dataset, rows, columns, format) {
         timestampedName(dataset, 'csv'),
         toCSV(rows, columns),
         'text/csv;charset=utf-8'
+    );
+}
+
+// exportEverything downloads all three history datasets: as one JSON document,
+// or as one CSV file per dataset.
+export function exportEverything({ shares, sessions, blocks }, format = 'json') {
+    if (format === 'csv') {
+        exportDataset('shares', shares, SHARE_COLUMNS, 'csv');
+        exportDataset('sessions', sessions, SESSION_COLUMNS, 'csv');
+        exportDataset('blocks', blocks, BLOCK_COLUMNS, 'csv');
+        return;
+    }
+    triggerDownload(
+        timestampedName('export', 'json'),
+        JSON.stringify({ shares, sessions, blocks }, null, 2),
+        'application/json'
     );
 }

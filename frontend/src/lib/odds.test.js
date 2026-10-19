@@ -3,16 +3,11 @@ import {
     computeOdds,
     computeExpectedValue,
     blockSubsidy,
-    formatUSD,
-    formatTimespan,
-    formatOdds,
+    probabilityWithin,
     HASHES_PER_DIFFICULTY,
     SECONDS_PER_DAY,
     DEFAULT_BLOCK_REWARD_BTC,
 } from './odds.js';
-
-// Minimal translation stub: returns the key so assertions stay readable.
-const t = (k) => k;
 
 describe('computeOdds', () => {
     it('reports no data when hashrate or difficulty is missing', () => {
@@ -88,48 +83,19 @@ describe('blockSubsidy', () => {
     });
 });
 
-describe('formatUSD', () => {
-    it('renders the empty marker for non-positive / nullish input', () => {
-        expect(formatUSD(null)).toBe('—');
-        expect(formatUSD(0)).toBe('—');
-        expect(formatUSD(-3)).toBe('—');
+describe('probabilityWithin', () => {
+    it('is 0 for an unusable expected time', () => {
+        expect(probabilityWithin(100, 0)).toBe(0);
+        expect(probabilityWithin(100, Infinity)).toBe(0);
+        expect(probabilityWithin(100, NaN)).toBe(0);
     });
 
-    it('renders normal, tiny and astronomically-small amounts', () => {
-        expect(formatUSD(1234.5)).toBe('$1,234.50');
-        expect(formatUSD(0.000123)).toBe('$0.000123');
-        expect(formatUSD(1e-9)).toMatch(/e-/);
-    });
-});
-
-describe('formatTimespan', () => {
-    it('renders the empty marker for non-positive / infinite input', () => {
-        expect(formatTimespan(0, t)).toBe('—');
-        expect(formatTimespan(Infinity, t)).toBe('—');
+    it('follows 1 - e^(-T/λ)', () => {
+        expect(probabilityWithin(1, 1)).toBeCloseTo(1 - Math.exp(-1), 12);
     });
 
-    it('renders seconds, hours, days and years', () => {
-        expect(formatTimespan(30, t)).toBe('30 s');
-        expect(formatTimespan(7200, t)).toBe('2.0 h');
-        expect(formatTimespan(2 * SECONDS_PER_DAY, t)).toBe('2.0 oddsDays');
-        expect(formatTimespan(2 * 365.25 * SECONDS_PER_DAY, t)).toBe('2 oddsYears');
-    });
-
-    it('falls back to scientific notation for astronomical spans', () => {
-        const huge = 1e7 * 365.25 * SECONDS_PER_DAY; // 10 million years
-        expect(formatTimespan(huge, t)).toMatch(/e\+/);
-    });
-});
-
-describe('formatOdds', () => {
-    it('renders the empty marker for invalid probabilities', () => {
-        expect(formatOdds(0, t)).toBe('—');
-        expect(formatOdds(-1, t)).toBe('—');
-    });
-
-    it('renders certainty and "1 in N" odds', () => {
-        expect(formatOdds(1, t)).toBe('oddsCertain');
-        expect(formatOdds(0.5, t)).toBe('1 oddsIn 2');
-        expect(formatOdds(1e-9, t)).toMatch(/1 oddsIn .*e\+/);
+    it('keeps full precision for astronomically small probabilities', () => {
+        // 1 - exp(-1e-20) rounds to exactly 0 in floating point; expm1 does not.
+        expect(probabilityWithin(1, 1e20)).toBeCloseTo(1e-20, 30);
     });
 });

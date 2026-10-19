@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestAddShareCounters(t *testing.T) {
@@ -188,5 +189,69 @@ func TestReset(t *testing.T) {
 	}
 	if len(c.GetShareHistory(0)) != 0 {
 		t.Fatalf("Reset did not clear share history")
+	}
+}
+
+func TestResetAlsoClearsSessions(t *testing.T) {
+	c := NewCollector(100)
+	c.dataDir = t.TempDir()
+	c.sessionHistory = []Session{{ID: "s1"}}
+
+	c.Reset()
+
+	if len(c.GetSessionHistory(0)) != 0 {
+		t.Fatal("Reset should clear the session history too")
+	}
+}
+
+func TestUndoResetRestoresWhatResetErased(t *testing.T) {
+	c := NewCollector(100)
+	c.dataDir = t.TempDir()
+	c.AddShare(1, "w", "job", "n", 5, true)
+	c.UpdateHashes(999)
+	c.sessionHistory = []Session{{ID: "s1"}}
+
+	c.Reset()
+	if !c.UndoReset() {
+		t.Fatal("undo right after a reset should succeed")
+	}
+
+	stats := c.GetStats()
+	if stats["total_shares"].(int) != 1 || stats["total_hashes"].(uint64) != 999 {
+		t.Fatalf("undo did not restore the counters: %+v", stats)
+	}
+	if len(c.GetShareHistory(0)) != 1 || len(c.GetSessionHistory(0)) != 1 {
+		t.Fatal("undo did not restore the histories")
+	}
+	if stats["best_difficulty"].(float64) != 5 {
+		t.Fatalf("undo did not restore the best difficulty: %v", stats["best_difficulty"])
+	}
+}
+
+func TestUndoResetOnlyWorksOnce(t *testing.T) {
+	c := NewCollector(100)
+	c.dataDir = t.TempDir()
+	c.Reset()
+	if !c.UndoReset() {
+		t.Fatal("first undo should succeed")
+	}
+	if c.UndoReset() {
+		t.Fatal("a second undo has nothing left to restore")
+	}
+}
+
+func TestUndoResetWithoutReset(t *testing.T) {
+	if NewCollector(100).UndoReset() {
+		t.Fatal("nothing was reset, nothing to undo")
+	}
+}
+
+func TestUndoResetExpires(t *testing.T) {
+	c := NewCollector(100)
+	c.dataDir = t.TempDir()
+	c.Reset()
+	c.undo.takenAt = time.Now().Add(-UndoWindow - time.Second)
+	if c.UndoReset() {
+		t.Fatal("an expired reset must not be undoable")
 	}
 }

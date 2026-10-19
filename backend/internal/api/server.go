@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -60,6 +61,7 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/status", s.handleStatus)
 	s.mux.HandleFunc("/api/stats", s.handleStats)
 	s.mux.HandleFunc("/api/stats/reset", s.handleStatsReset)
+	s.mux.HandleFunc("/api/stats/restore", s.handleStatsRestore)
 	s.mux.HandleFunc("/api/history", s.handleHistory)
 	s.mux.HandleFunc("/api/sessions", s.handleSessions)
 	s.mux.HandleFunc("/api/workers", s.handleWorkers)
@@ -67,6 +69,7 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/api/config", s.handleConfig)
 	s.mux.HandleFunc("/api/mining/start", s.handleMiningStart)
 	s.mux.HandleFunc("/api/mining/stop", s.handleMiningStop)
+	s.mux.HandleFunc("/api/pool/retry", s.handlePoolRetry)
 
 	// Live Bitcoin network context (difficulty, height, price).
 	s.mux.HandleFunc("/api/network", s.handleNetwork)
@@ -183,6 +186,11 @@ func (s *Server) buildStatsPayload() map[string]interface{} {
 		"connected":       s.stratum.IsConnected(),
 		"authorized":      s.stratum.IsAuthorized(),
 	}
+	addPoolHealth(payload, s.stratum.Health())
+	if latest := s.stats.GetShareHistory(1); len(latest) > 0 {
+		// Lets the dashboard's activity feed say which worker found the latest proof.
+		payload["last_share_worker"] = latest[0].WorkerName
+	}
 
 	// Fold in live network context when available so the dashboard's odds
 	// estimator runs against the real difficulty instead of a stale fallback.
@@ -206,6 +214,36 @@ func (s *Server) buildStatsPayload() map[string]interface{} {
 	}
 
 	return payload
+}
+
+// addPoolHealth folds the pool connection health into a stats payload. Timing
+// values are whole seconds, the unit the dashboard displays.
+func addPoolHealth(payload map[string]interface{}, h stratum.Health) {
+	payload["pool_reconnects"] = h.Reconnects
+	if h.LastError != "" {
+		payload["pool_last_error"] = h.LastError
+	}
+	if h.NextRetryIn > 0 {
+		payload["pool_retry_in_seconds"] = int(math.Ceil(h.NextRetryIn.Seconds()))
+	}
+	if h.HasJob {
+		payload["pool_last_job_age_seconds"] = int(h.LastJobAge.Seconds())
+		payload["pool_last_job_id"] = h.LastJobID
+	}
+}
+
+// handlePoolRetry skips the wait before the next pool reconnect attempt. It
+// answers 409 when no attempt is pending (the pool is connected or mining is off).
+func (s *Server) handlePoolRetry(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !s.stratum.RetryNow() {
+		http.Error(w, "No reconnection is pending", http.StatusConflict)
+		return
+	}
+	jsonResponse(w, map[string]string{"status": "retrying"})
 }
 
 // handleNetwork returns the latest live Bitcoin network context. It always
@@ -303,6 +341,23 @@ func (s *Server) handleStatsReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse(w, map[string]string{"status": "reset"})
+}
+
+// handleStatsRestore undoes the last reset while it is still recent, so a
+// mis-click on "Reset statistics" is not final. 409 when there is nothing to undo.
+func (s *Server) handleStatsRestore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !s.stats.UndoReset() {
+		http.Error(w, "Nothing to restore", http.StatusConflict)
+		return
+	}
+	if err := s.stats.Save(); err != nil {
+		log.Printf("Failed to persist stats after restore: %v", err)
+	}
+	jsonResponse(w, map[string]string{"status": "restored"})
 }
 
 // handleHistory returns share/block history

@@ -2,23 +2,26 @@
 // WebWorkers and exposes a surface mirroring the Go backend's REST + WebSocket API
 // (backend/internal/api/server.go), so the React hooks can talk to it transparently.
 
-import { buildBlockHeader, fetchLatestBlock, fetchBtcPrice, FALLBACK_BLOCK } from './header.js';
+import { buildBlockHeader, candidateHashHex, fetchLatestBlock, fetchBtcPrice } from './header.js';
 import { blockSubsidy } from '../lib/odds.js';
 import { loadSnapshot, saveSnapshot, clearSnapshot } from './persistence.js';
+import { EXAMPLE_WALLET_ADDRESS } from '../config/runtime.js';
 
 const DEFAULT_CONFIG = {
     pool_url: 'solo.ckpool.org',
     pool_port: 3333,
-    wallet_address: '1FngDUBvDhPh9z3paCRHFEtHjnUMAFacn9',
+    wallet_address: EXAMPLE_WALLET_ADDRESS,
     max_cpu_percent: 80,
     num_workers: 4,
 };
 
 const SHARE_DIFFICULTY = 0.00002; // share target (a real pool sets one far below the network)
 const MAX_HISTORY = 1000;
+const BLOCK_RETRY_MS = 15000; // pause between attempts to fetch the current block
+const UNDO_WINDOW_MS = 30000; // how long a reset can still be undone (the backend allows the same)
 const PERSIST_THROTTLE_MS = 5000; // shares fire ~20/s; coalesce writes to localStorage
 
-class DemoEngine {
+export class DemoEngine {
     constructor() {
         this.config = { ...DEFAULT_CONFIG };
         this.running = false;
@@ -37,6 +40,11 @@ class DemoEngine {
         this.sessionHistory = [];
 
         this.block = null;          // { header, height, networkDifficulty, id }
+        this.blockSource = 'none';  // 'live' (mempool.space) | 'unavailable' (fetch failed) | 'none' (not tried yet)
+        this.blockRetryAt = 0;      // when the next fetch attempt fires while waiting for a block
+        this.blockRetryTimer = null;
+        this.undoSnapshot = null;   // what the last reset cleared
+        this.blockFetchedAt = 0;    // when the current block was received (the demo's "last job")
         this.blockPromise = null;
         this.priceUSD = 0;          // best-effort BTC/USD, for the odds panel's expected value
 
@@ -96,16 +104,21 @@ class DemoEngine {
     subscribe(cb) {
         this.subscribers.add(cb);
         this._startStatsLoop();
+        this._prefetchBlock();
         return () => this.subscribers.delete(cb);
+    }
+
+    // Fetch the current block (and BTC price) as soon as the page is open, so the
+    // reward in dollars and the odds are known before the visitor starts mining.
+    _prefetchBlock() {
+        if (this.prefetched) return;
+        this.prefetched = true;
+        this.ensureBlock().then(() => this._emit('stats', this.buildStatsPayload()));
     }
 
     _emit(type, data) {
         const evt = { type, data, timestamp: Date.now() };
         for (const cb of this.subscribers) cb(evt);
-    }
-
-    _log(message, color) {
-        this._emit('log', { message, color });
     }
 
     _startStatsLoop() {
@@ -116,46 +129,67 @@ class DemoEngine {
     }
 
     // ---------- block source (real data, no backend) ----------
+    // Fetches the current chain tip from mempool.space. Resolves to the block, or
+    // to null when the API is unreachable and no block was ever received: mining
+    // then waits for one (see startMining). A block we already hold is kept.
+    async _fetchBlock() {
+        let raw;
+        try {
+            raw = await fetchLatestBlock();
+        } catch {
+            if (!this.block) this.blockSource = 'unavailable';
+            return this.block;
+        }
+        this.block = {
+            header: buildBlockHeader(raw),
+            height: raw.height,
+            networkDifficulty: raw.difficulty,
+            id: raw.id,
+        };
+        this.blockSource = 'live';
+        this.blockFetchedAt = Date.now();
+        // Best-effort price so the odds can show expected value; a failure just
+        // leaves it at 0 and the USD figures stay hidden.
+        fetchBtcPrice().then((p) => { this.priceUSD = p; }).catch(() => {});
+        return this.block;
+    }
+
     async ensureBlock() {
         if (this.block) return this.block;
         if (!this.blockPromise) {
-            this.blockPromise = (async () => {
-                let raw, live;
-                try {
-                    raw = await fetchLatestBlock();
-                    live = true;
-                } catch (err) {
-                    raw = FALLBACK_BLOCK;
-                    live = false;
-                }
-                this.block = {
-                    header: buildBlockHeader(raw),
-                    height: raw.height,
-                    networkDifficulty: raw.difficulty,
-                    id: raw.id,
-                };
-                // Best-effort price so the odds panel can show expected value; a
-                // failure just leaves it at 0 and the USD figures stay hidden.
-                if (live) {
-                    fetchBtcPrice().then((p) => { this.priceUSD = p; }).catch(() => {});
-                }
-                // Deferred so this log lands in its own tick and isn't batched away by
-                // the stats event emitted right after mining starts.
-                setTimeout(() => {
-                    if (live) this._log(`📡 Bloc réseau #${raw.height} chargé (mempool.space)`, 'var(--info)');
-                    else this._log(`⚠️ API hors ligne — bloc de secours #${raw.height}`, 'var(--warning)');
-                }, 0);
-                return this.block;
-            })();
+            this.blockPromise = this._fetchBlock().finally(() => { this.blockPromise = null; });
         }
         return this.blockPromise;
+    }
+
+    // Retries the network fetch ("Retry" in the UI). If mining was waiting for the
+    // block, it starts as soon as the block arrives.
+    async refreshBlock() {
+        await this._fetchBlock();
+        if (this.running && this.block && this.workers.size === 0) this._launchWorkers();
+        else if (this.running && !this.block) this._scheduleBlockRetry();
+        this._emit('stats', this.buildStatsPayload());
+        return { block_source: this.blockSource };
+    }
+
+    // While mining waits for a block, try again every BLOCK_RETRY_MS.
+    _scheduleBlockRetry() {
+        clearTimeout(this.blockRetryTimer);
+        this.blockRetryAt = Date.now() + BLOCK_RETRY_MS;
+        this.blockRetryTimer = setTimeout(() => this.refreshBlock(), BLOCK_RETRY_MS);
+    }
+
+    _cancelBlockRetry() {
+        clearTimeout(this.blockRetryTimer);
+        this.blockRetryTimer = null;
+        this.blockRetryAt = 0;
     }
 
     // ---------- worker plumbing ----------
     _spawn(name) {
         const id = this.nextWorkerId++;
         const worker = new Worker(new URL('./miner.worker.js', import.meta.url), { type: 'module' });
-        const rec = { id, name: name || `cpu-worker-${id}`, worker, hashCount: 0, startTime: 0, running: false };
+        const rec = { id, name: name || `cpu-worker-${id}`, worker, hashCount: 0, hashBase: 0, startTime: 0, running: false };
         worker.onmessage = (e) => this._onWorkerMessage(rec, e.data);
         this.workers.set(id, rec);
         return rec;
@@ -164,6 +198,7 @@ class DemoEngine {
     _startWorker(rec) {
         rec.startTime = Date.now();
         rec.hashCount = 0;
+        rec.hashBase = 0;
         rec.running = true;
         rec.worker.postMessage({
             cmd: 'start',
@@ -179,7 +214,8 @@ class DemoEngine {
         if (!this.workers.has(rec.id)) return;
         switch (msg.type) {
             case 'progress':
-                rec.hashCount = msg.hashCount;
+                // The worker counts since it started; a reset moves the baseline instead.
+                rec.hashCount = msg.hashCount - rec.hashBase;
                 if (msg.bestDifficulty > this.bestDifficulty) {
                     this.bestDifficulty = msg.bestDifficulty;
                     this._persist(); // capture new best-difficulty records
@@ -202,17 +238,22 @@ class DemoEngine {
                 // emission (they fire ~20/s and would needlessly churn the UI).
                 this._persist();
                 break;
-            case 'block':
-                this.blockHistory.push({
+            case 'block': {
+                const entry = {
                     timestamp: Date.now(),
                     height: this.block ? this.block.height : 0,
                     prev_hash: this.block ? this.block.id : '',
-                });
+                    worker_name: rec.name,
+                    nonce: msg.nonce,
+                    hash: this.block ? candidateHashHex(this.block.header, msg.nonce) : '',
+                    difficulty: msg.difficulty,
+                };
+                this.blockHistory.push(entry);
                 if (this.blockHistory.length > MAX_HISTORY) this.blockHistory.shift();
                 this._persistNow(); // a candidate block is the rarest, most precious event
-                this._emit('block', { difficulty: msg.difficulty });
-                this._log('🆕 Bloc candidat trouvé (démo) !', 'var(--gold)');
+                this._emit('block', entry);
                 break;
+            }
             default:
                 break;
         }
@@ -273,6 +314,7 @@ class DemoEngine {
             total_hashes: totalHashes,
             total_shares: this.totalShares,
             accepted_shares: this.acceptedShares,
+            rejected_shares: this.totalShares - this.acceptedShares,
             best_difficulty: this.bestDifficulty,
             uptime_seconds: uptime,
             // Surfaced so the odds estimator can use the live network difficulty,
@@ -281,6 +323,14 @@ class DemoEngine {
             block_height: this.block ? this.block.height : 0,
             block_reward_btc: this.block ? blockSubsidy(this.block.height) : 0,
             btc_price_usd: this.priceUSD,
+            block_source: this.blockSource,
+            last_share_worker: this.shareHistory.length ? this.shareHistory[this.shareHistory.length - 1].worker_name : '',
+            ...(this.blockRetryAt > 0 && { block_retry_in_seconds: Math.max(0, Math.ceil((this.blockRetryAt - now) / 1000)) }),
+            pool_reconnects: 0,
+            ...(this.block && {
+                pool_last_job_age_seconds: Math.floor((now - this.blockFetchedAt) / 1000),
+                pool_last_job_id: String(this.block.id || '').slice(-6),
+            }),
             workers,
             connected: this.running,
             authorized: this.running,
@@ -288,7 +338,19 @@ class DemoEngine {
     }
 
     // Clear all accumulated counters and history (mirrors POST /api/stats/reset).
+    // What was cleared is kept for UNDO_WINDOW_MS so the reset can be undone.
     resetStats() {
+        this.undoSnapshot = {
+            takenAt: Date.now(),
+            startTime: this.startTime,
+            state: this._snapshot(),
+            workers: [...this.workers.values()].map((rec) => ({
+                rec,
+                hashBase: rec.hashBase,
+                hashCount: rec.hashCount,
+                startTime: rec.startTime,
+            })),
+        };
         this.totalShares = 0;
         this.acceptedShares = 0;
         this.bestDifficulty = 0;
@@ -297,6 +359,7 @@ class DemoEngine {
         this.sessionHistory = [];
         this.previousSeconds = 0;
         for (const rec of this.workers.values()) {
+            rec.hashBase += rec.hashCount;
             rec.hashCount = 0;
             rec.startTime = rec.running ? Date.now() : 0;
         }
@@ -304,6 +367,34 @@ class DemoEngine {
         clearSnapshot(); // drop persisted history so the reset survives a refresh
         this._emit('stats', this.buildStatsPayload());
         return { status: 'reset' };
+    }
+
+    // Bring back what the last reset cleared (mirrors POST /api/stats/restore).
+    undoReset() {
+        const undo = this.undoSnapshot;
+        this.undoSnapshot = null;
+        if (!undo || Date.now() - undo.takenAt > UNDO_WINDOW_MS) {
+            throw new Error('Nothing to restore');
+        }
+        const { state } = undo;
+        this.totalShares = state.totalShares;
+        this.acceptedShares = state.acceptedShares;
+        this.bestDifficulty = state.bestDifficulty;
+        this.previousSeconds = state.previousSeconds;
+        this.shareHistory = state.shareHistory;
+        this.blockHistory = state.blockHistory;
+        this.sessionHistory = state.sessionHistory;
+        for (const { rec, hashBase, hashCount, startTime } of undo.workers) {
+            // The worker kept counting: with the old baseline its count includes
+            // everything, before and after the reset.
+            rec.hashBase = hashBase;
+            rec.hashCount = hashCount;
+            rec.startTime = rec.running ? startTime : 0;
+        }
+        if (this.running) this.startTime = undo.startTime;
+        this._persistNow();
+        this._emit('stats', this.buildStatsPayload());
+        return { status: 'restored' };
     }
 
     getHistory(limit) {
@@ -319,20 +410,30 @@ class DemoEngine {
         return limit > 0 ? rev.slice(0, limit) : rev;
     }
 
+    // Starts mining as soon as a block to work on is available. Until then the
+    // session counts as running, but no worker computes anything.
     async startMining() {
-        await this.ensureBlock();
+        this.running = true;
+        this.startTime = Date.now();
+        const block = await this.ensureBlock();
+        if (!this.running) return { status: 'stopped' }; // stopped while we waited
+        if (!block) {
+            this._scheduleBlockRetry();
+            this._emit('stats', this.buildStatsPayload());
+            return { status: 'waiting' };
+        }
+        this._launchWorkers();
+        return { status: 'started' };
+    }
 
+    _launchWorkers() {
+        this._cancelBlockRetry();
         if (this.workers.size === 0) {
             const n = this.config.num_workers > 0 ? this.config.num_workers : 1;
             for (let i = 0; i < n; i++) this._spawn('');
         }
-
-        this.running = true;
-        this.startTime = Date.now();
         for (const rec of this.workers.values()) this._startWorker(rec);
-
         this._emit('stats', this.buildStatsPayload());
-        return { status: 'started' };
     }
 
     stopMining() {
@@ -352,6 +453,7 @@ class DemoEngine {
             if (this.sessionHistory.length > 50) this.sessionHistory.shift();
         }
         this.running = false;
+        this._cancelBlockRetry();
         for (const rec of this.workers.values()) {
             rec.running = false;
             rec.worker.postMessage({ cmd: 'stop' });

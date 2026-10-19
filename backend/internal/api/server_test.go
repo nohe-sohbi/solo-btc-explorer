@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/soloforge/backend/internal/config"
 	"github.com/soloforge/backend/internal/miner"
@@ -110,5 +111,107 @@ func TestCORSPreflightShortCircuits(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("preflight status = %d, want 200", rec.Code)
+	}
+}
+
+func TestHandlePoolRetryWithoutPendingReconnect(t *testing.T) {
+	s := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.handlePoolRetry(rec, httptest.NewRequest(http.MethodPost, "/api/pool/retry", nil))
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409 when nothing is pending, got %d", rec.Code)
+	}
+}
+
+func TestHandlePoolRetryRejectsGet(t *testing.T) {
+	s := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.handlePoolRetry(rec, httptest.NewRequest(http.MethodGet, "/api/pool/retry", nil))
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405, got %d", rec.Code)
+	}
+}
+
+func TestAddPoolHealthOmitsWhatIsUnknown(t *testing.T) {
+	payload := map[string]interface{}{}
+	addPoolHealth(payload, stratum.Health{})
+	if payload["pool_reconnects"] != 0 {
+		t.Fatalf("reconnects should always be reported, got %v", payload["pool_reconnects"])
+	}
+	for _, key := range []string{"pool_last_error", "pool_retry_in_seconds", "pool_last_job_age_seconds", "pool_last_job_id"} {
+		if _, ok := payload[key]; ok {
+			t.Fatalf("%s should be omitted when unknown", key)
+		}
+	}
+}
+
+func TestAddPoolHealthRoundsRetryUp(t *testing.T) {
+	payload := map[string]interface{}{}
+	addPoolHealth(payload, stratum.Health{
+		Reconnects:  2,
+		LastError:   "i/o timeout",
+		NextRetryIn: 7400 * time.Millisecond,
+		HasJob:      true,
+		LastJobAge:  12 * time.Second,
+		LastJobID:   "4f2a9c",
+	})
+	if payload["pool_retry_in_seconds"] != 8 {
+		t.Fatalf("a 7.4s wait should display as 8s, got %v", payload["pool_retry_in_seconds"])
+	}
+	if payload["pool_last_job_age_seconds"] != 12 || payload["pool_last_job_id"] != "4f2a9c" || payload["pool_last_error"] != "i/o timeout" || payload["pool_reconnects"] != 2 {
+		t.Fatalf("unexpected payload: %v", payload)
+	}
+}
+
+func TestStatsRestoreUndoesAReset(t *testing.T) {
+	t.Setenv("DATA_DIR", t.TempDir()) // the handlers persist; keep it out of /app/data
+	s := newTestServer(t)
+	s.stats.AddShare(1, "w", "job", "n", 5, true)
+
+	reset := httptest.NewRecorder()
+	s.handleStatsReset(reset, httptest.NewRequest(http.MethodPost, "/api/stats/reset", nil))
+	if len(s.stats.GetShareHistory(0)) != 0 {
+		t.Fatal("reset should have cleared the history")
+	}
+
+	restore := httptest.NewRecorder()
+	s.handleStatsRestore(restore, httptest.NewRequest(http.MethodPost, "/api/stats/restore", nil))
+	if restore.Code != http.StatusOK {
+		t.Fatalf("restore after a reset should succeed, got %d", restore.Code)
+	}
+	if len(s.stats.GetShareHistory(0)) != 1 {
+		t.Fatal("restore should bring the share back")
+	}
+}
+
+func TestStatsRestoreWithoutResetIsAConflict(t *testing.T) {
+	s := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.handleStatsRestore(rec, httptest.NewRequest(http.MethodPost, "/api/stats/restore", nil))
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d", rec.Code)
+	}
+}
+
+func TestStatsRestoreRejectsGet(t *testing.T) {
+	s := newTestServer(t)
+	rec := httptest.NewRecorder()
+	s.handleStatsRestore(rec, httptest.NewRequest(http.MethodGet, "/api/stats/restore", nil))
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405, got %d", rec.Code)
+	}
+}
+
+func TestStatsPayloadNamesTheWorkerOfTheLatestShare(t *testing.T) {
+	t.Setenv("DATA_DIR", t.TempDir())
+	s := newTestServer(t)
+	if _, ok := s.buildStatsPayload()["last_share_worker"]; ok {
+		t.Fatal("no share yet: no worker to name")
+	}
+
+	s.stats.AddShare(1, "cpu-worker-1", "job", "n1", 1, true)
+	s.stats.AddShare(2, "cpu-worker-2", "job", "n2", 1, true)
+	if got := s.buildStatsPayload()["last_share_worker"]; got != "cpu-worker-2" {
+		t.Fatalf("expected the latest share's worker, got %v", got)
 	}
 }

@@ -1,0 +1,82 @@
+/* =============================================================================
+   Design tokens — one "navy and gold" theme in two moods.
+   Light is the default; the dark mood is selected by <html data-theme="dark">
+   (see hooks/usePreferences.js). Components only ever read these variables.
+   ============================================================================= */
+
+:root {
+    /* Typography */
+    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    /* Shape */
+    --radius-control: 10px;
+    --radius-card: 16px;
+    --radius-hero: 20px;
+    --radius-pill: 999px;
+
+    /* Light mood (default) */
+    --bg: #f2f0ea;
+    --panel: #ffffff;
+    --panel-2: #f7f5f0;
+    --art-base: #efeae0;
+    --line: rgba(29, 35, 48, 0.09);
+    --line-strong: rgba(29, 35, 48, 0.16);
+    --track: rgba(29, 35, 48, 0.09);
+
+    --text: #1d2330;
+    --text-muted: #525a6b;
+    --text-dim: #667085;
+
+    --accent: #7a5a14;
+    --accent-fill: #d4ae5f;
+    --on-accent-fill: #1d2330;
+    --accent-bg: rgba(177, 131, 38, 0.12);
+    --accent-line: rgba(150, 110, 30, 0.34);
+
+    --success: #23724a;
+    --success-bg: rgba(35, 114, 74, 0.1);
+    --danger: #a8403a;
+    --danger-bg: rgba(168, 64, 58, 0.08);
+    --info: #2f5fa8;
+    --info-bg: rgba(47, 95, 168, 0.08);
+
+    --shadow-card: 0 1px 2px rgba(29, 35, 48, 0.04), 0 10px 30px rgba(29, 35, 48, 0.05);
+    --shadow-dialog: 0 30px 80px rgba(19, 23, 34, 0.35);
+    --backdrop: rgba(19, 23, 34, 0.55);
+
+    color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+    --bg: #131722;
+    --panel: #1b2130;
+    --panel-2: #161b28;
+    --art-base: #1b2130;
+    --line: rgba(255, 255, 255, 0.06);
+    --line-strong: rgba(255, 255, 255, 0.12);
+    --track: rgba(255, 255, 255, 0.08);
+
+    --text: #e6e8ee;
+    --text-muted: #a2aabc;
+    --text-dim: #8992a6;
+
+    --accent: #ddbb78;
+    --accent-fill: #d4ae5f;
+    --on-accent-fill: #161b28;
+    --accent-bg: rgba(212, 174, 95, 0.13);
+    --accent-line: rgba(212, 174, 95, 0.32);
+
+    --success: #8fd0a6;
+    --success-bg: rgba(143, 208, 166, 0.12);
+    --danger: #e8998f;
+    --danger-bg: rgba(232, 153, 143, 0.12);
+    --info: #8db4ee;
+    --info-bg: rgba(141, 180, 238, 0.1);
+
+    --shadow-card: none;
+    --shadow-dialog: 0 30px 80px rgba(0, 0, 0, 0.55);
+    --backdrop: rgba(5, 7, 12, 0.65);
+
+    color-scheme: dark;
+}
