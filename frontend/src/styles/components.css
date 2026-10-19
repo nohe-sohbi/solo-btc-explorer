@@ -487,6 +487,10 @@
     padding: 10px 0;
 }
 
+.facts--boxed .facts__row--stacked dt {
+    font-size: inherit;
+}
+
 .facts--boxed .facts__row:first-child {
     border-top: 0;
 }
@@ -1142,7 +1146,8 @@
 
 /* Confirmation of a destructive action: a small card, no artwork, no close button. */
 .dialog--compact {
-    max-width: 460px;
+    /* The mockup's 460px is a content width: 22px padding and the border come on top. */
+    max-width: 506px;
     border: 1px solid var(--line-strong);
     border-radius: 16px;
     box-shadow: 0 12px 40px rgba(29, 35, 48, 0.12);
@@ -1170,7 +1175,7 @@
 }
 
 .dialog--compact .dialog__actions {
-    margin-top: 18px;
+    margin-top: 17px;
 }
 
 .dialog--compact .btn {
