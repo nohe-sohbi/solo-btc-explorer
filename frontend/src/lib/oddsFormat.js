@@ -9,8 +9,9 @@ const SECONDS_PER_HOUR = 3600;
 const EMPTY = '—';
 
 // formatDuration renders a span in seconds with the most natural unit:
-// "45 s", "12 min", "3,5 h", "120 jours", "5 400 ans", "34,7 milliards d'années".
-export function formatDuration(seconds, lang, t) {
+// "45 s", "12 min", "3,5 h", "120 jours", "5 400 ans", "34,7 milliards d'années"
+// (`whole`: see formatBigNumber).
+export function formatDuration(seconds, lang, t, whole = false) {
     if (!isFinite(seconds) || seconds <= 0) return EMPTY;
     if (seconds < SECONDS_PER_MINUTE) return t('durSeconds', { n: formatInteger(seconds, lang) });
     if (seconds < SECONDS_PER_HOUR) return t('durMinutes', { n: formatInteger(seconds / SECONDS_PER_MINUTE, lang) });
@@ -20,22 +21,22 @@ export function formatDuration(seconds, lang, t) {
     const years = seconds / SECONDS_PER_YEAR;
     if (years < 10) return t('durYears', { n: formatDecimal(years, lang, 1) });
     if (years < 1e6) return t('durYears', { n: formatInteger(years, lang) });
-    return t('durYearsBig', { n: formatBigNumber(years, lang) });
+    return t('durYearsBig', { n: formatBigNumber(years, lang, whole) });
 }
 
 // formatOneIn renders a probability as "1 in N" odds ("1 sur 12,7 billions").
-export function formatOneIn(probability, lang, t) {
+export function formatOneIn(probability, lang, t, whole = false) {
     if (!isFinite(probability) || probability <= 0) return EMPTY;
     if (probability >= 1) return t('oddsCertain');
-    return t('oddsOneIn', { n: formatBigNumber(1 / probability, lang) });
+    return t('oddsOneIn', { n: formatBigNumber(1 / probability, lang, whole) });
 }
 
 // formatChance picks the friendlier notation: a percentage once the chance is
 // at least 1 %, "1 in N" below that.
-export function formatChance(probability, lang, t) {
+export function formatChance(probability, lang, t, whole = false) {
     if (!isFinite(probability) || probability <= 0) return EMPTY;
     if (probability >= 0.01) return t('oddsPercent', { n: formatDecimal(probability * 100, lang, 1) });
-    return formatOneIn(probability, lang, t);
+    return formatOneIn(probability, lang, t, whole);
 }
 
 // formatUsd renders a dollar amount, keeping enough decimals for the vanishingly

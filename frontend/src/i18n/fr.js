@@ -141,7 +141,7 @@ export default {
     bestTitle: "Meilleur essai",
     bestTech: "difficulté",
     bestHelp: "La difficulté mesure la rareté d'une empreinte. Pour gagner un bloc, il faut atteindre celle du réseau Bitcoin.",
-    bestGoal: "À atteindre : {target}",
+    bestGoal: "À atteindre : `{target}`",
 
     // ----- Le gros lot -----
     jackpotLabel: "Le gros lot : la récompense d'un bloc",

@@ -17,8 +17,8 @@ import { useBackgroundNotice } from './hooks/useBackgroundNotice.js';
 import { IS_DEMO } from './config/runtime.js';
 import { checkWallet } from './lib/walletCheck.js';
 import { computeOdds } from './lib/odds.js';
-import { formatBigNumber, formatInteger } from './lib/bigNumbers.js';
-import { approximateCount, formatUptime } from './lib/format.js';
+import { formatBigNumber } from './lib/bigNumbers.js';
+import { approximateCount, formatUptime, formatSpacedInteger } from './lib/format.js';
 import { buildBlockProof } from './lib/blockProof.js';
 import { exportEverything, triggerDownload, timestampedName } from './lib/exportData.js';
 import { track } from './lib/analytics.js';
@@ -125,7 +125,7 @@ export default function App() {
             ? t('subDashboardStopped')
             : hashrate > 0
               ? t(IS_DEMO ? 'subDashboardRunningDemo' : 'subDashboardRunning', {
-                    rate: formatInteger(approximateCount(hashrate), lang),
+                    rate: formatSpacedInteger(approximateCount(hashrate), lang),
                 })
               : t('subDashboardStarting');
     } else {

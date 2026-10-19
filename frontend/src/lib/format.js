@@ -1,7 +1,7 @@
 // Shared display formatters, centralised so the dashboard, the workers list and
 // the chart render identical units and so the logic can be unit-tested in
 // isolation.
-import { LOCALES, formatDecimal } from './bigNumbers.js';
+import { LOCALES, formatDecimal, formatInteger } from './bigNumbers.js';
 
 const HASHRATE_UNITS = [
     ['EH/s', 1e18],
@@ -49,6 +49,13 @@ export function formatHashrateReadable(hash, lang) {
 export function formatApproxHashrate(hash) {
     const { value, unit } = splitHashrate(hash);
     return `≈ ${Number(value.toFixed(2))} ${unit}`;
+}
+
+// formatSpacedInteger groups digits with a no-break space as wide as a regular one
+// (the French narrow no-break space is too thin next to the design's figures), so a
+// count never wraps in the middle: 475000 -> "475 000".
+export function formatSpacedInteger(n, lang) {
+    return formatInteger(n, lang).replace(/\u202f/g, '\u00a0');
 }
 
 // shortHash keeps both ends of a long hash: "00000000000000000002a8c1…e7d4a91c".

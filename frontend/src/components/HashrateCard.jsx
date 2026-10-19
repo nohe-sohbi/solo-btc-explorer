@@ -1,16 +1,13 @@
 import { useState } from 'react';
+import Rich from './Rich.jsx';
 import HelpTip from './HelpTip.jsx';
 import Segmented from './Segmented.jsx';
 import SpeedChart from './SpeedChart.jsx';
 import { PERIODS } from '../lib/series.js';
-import { splitHashrate, formatNumber, approximateCount, formatSi } from '../lib/format.js';
+import { splitHashrate, formatNumber, approximateCount, formatSi, formatSpacedInteger } from '../lib/format.js';
 import { formatBigNumber, formatInteger } from '../lib/bigNumbers.js';
 
 const MILLION = 1e6;
-
-// The mockup spells this count with a regular-width space; a no-break one keeps it
-// the same width without letting the number wrap in the middle.
-const spacedCount = (n, lang) => formatInteger(n, lang).replace(/\u202f/g, '\u00a0');
 
 // One of the three counters under the chart: a plain-language name, the technical
 // term next to it, a "?" explanation, the value and a one-line caption.
@@ -24,7 +21,9 @@ function StatCell({ title, tech, help, value, caption, children, t }) {
             </div>
             <div className="stat-cell__value">{value}</div>
             {children}
-            <div className="stat-cell__caption">{caption}</div>
+            <div className="stat-cell__caption">
+                <Rich text={caption} />
+            </div>
         </div>
     );
 }
@@ -66,7 +65,7 @@ export default function HashrateCard({ t, lang, running, stats, samples, hiddenF
                     </div>
                     <div className="speed-card__caption">
                         {running && hashrate > 0
-                            ? t('speedCaption', { rate: spacedCount(approximateCount(hashrate), lang) })
+                            ? t('speedCaption', { rate: formatSpacedInteger(approximateCount(hashrate), lang) })
                             : t('speedCaptionIdle')}
                     </div>
                 </div>

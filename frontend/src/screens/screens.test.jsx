@@ -145,7 +145,7 @@ describe('ConfigScreen', () => {
     it('summarises the live settings and the odds', () => {
         renderConfig(makeSession({ running: true, stats: { hashrate: 475260 } }));
         const summary = screen.getByRole('heading', { name: 'Avec ces réglages' }).closest('section');
-        expect(within(summary).getByText('≈ 475.26 KH/s')).toBeTruthy();
+        expect(within(summary).getByText('≈ 475 KH/s')).toBeTruthy();
         expect(within(summary).getByText('≈ 80 %')).toBeTruthy();
         expect(within(summary).getByText(/1 sur 1\d,\d billions/)).toBeTruthy();
     });

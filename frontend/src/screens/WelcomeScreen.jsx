@@ -6,10 +6,9 @@ import WalletField from '../components/WalletField.jsx';
 import { LedgerIllustration, PuzzleIllustration, RewardIllustration } from '../components/Illustrations.jsx';
 import { IS_DEMO, EXAMPLE_WALLET_ADDRESS } from '../config/runtime.js';
 import { checkWallet } from '../lib/walletCheck.js';
-import { formatInteger } from '../lib/bigNumbers.js';
 import { formatUsdWhole } from '../lib/oddsFormat.js';
 import { TYPICAL_BROWSER_HASHRATE } from '../lib/simulator.js';
-import { formatReward } from '../lib/format.js';
+import { formatReward, formatSpacedInteger } from '../lib/format.js';
 
 const SAMPLE_FINGERPRINTS = ['9c4e1b7a…b21f', '07af52c9…3d9a', 'e12b90d4…77ac'];
 
@@ -120,7 +119,7 @@ export default function WelcomeScreen({ t, lang, theme, network, savedWallet, on
                         </div>
                     ))}
                     <div className="attempts__label">
-                        {t('sampleRate', { rate: formatInteger(TYPICAL_BROWSER_HASHRATE, lang) })}
+                        {t('sampleRate', { rate: formatSpacedInteger(TYPICAL_BROWSER_HASHRATE, lang) })}
                     </div>
                     <div className="attempts__goal">
                         {t('sampleGoal')}

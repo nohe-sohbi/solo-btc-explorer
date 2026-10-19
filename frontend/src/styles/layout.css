@@ -66,6 +66,10 @@
     text-align: left;
 }
 
+.nav-link__label {
+    line-height: 16px;
+}
+
 .nav-link:hover {
     background: var(--panel-2);
 }
@@ -204,6 +208,10 @@
 
 .split > :last-child {
     flex: 1 1 322px;
+}
+
+.split--even {
+    align-items: flex-start;
 }
 
 .split--even > :first-child {

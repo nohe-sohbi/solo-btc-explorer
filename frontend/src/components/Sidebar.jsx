@@ -45,7 +45,7 @@ export default function Sidebar({
                         onClick={() => onNavigate(item.route)}
                     >
                         <Icon name={item.icon} />
-                        {t(item.labelKey)}
+                        <span className="nav-link__label">{t(item.labelKey)}</span>
                     </button>
                 ))}
             </nav>

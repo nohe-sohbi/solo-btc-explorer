@@ -48,7 +48,7 @@ export function PoolPanel({ t, lang, stats, pool, running, health }) {
             <dl className="facts">
                 <Fact label={t('advPool')}>{pool}</Fact>
                 <Fact label={t('advStatus')}>
-                    <span className={statusKey === 'advStatusOk' ? 'text-success' : 'text-muted'}>{t(statusKey)}</span>
+                    <span className={`facts__status ${statusKey === 'advStatusOk' ? 'text-success' : 'text-muted'}`}>{t(statusKey)}</span>
                 </Fact>
                 <Fact label={t('advLastJob')}>{lastJob}</Fact>
                 <Fact label={t('advReconnects')}>{formatInteger(health.reconnects, lang)}</Fact>
@@ -77,7 +77,16 @@ function ProbeChip({ kind, state, t }) {
 
 // The monitoring endpoints, with the live state of the two probes. In the demo
 // there is no server behind them, so the probes are marked as not applicable.
-function MonitoringRows({ t, health, ready }) {
+function MonitoringRows({ t, health, ready, linked }) {
+    // The endpoints only exist next to a server: in the demo they are plain text.
+    const endpoint = (path, href) =>
+        linked ? (
+            <a href={href} target="_blank" rel="noreferrer">
+                <code>{path}</code>
+            </a>
+        ) : (
+            <code>{path}</code>
+        );
     return (
         <dl className="facts">
             <Fact label={<code>/healthz</code>}>
@@ -86,14 +95,14 @@ function MonitoringRows({ t, health, ready }) {
             <Fact label={<code>/readyz</code>}>
                 <ProbeChip kind="ready" state={ready} t={t} />
             </Fact>
-            <Fact label={<a href="/metrics" target="_blank" rel="noreferrer"><code>/metrics</code></a>}>
-                {t('advEndpointMetrics')}
+            <Fact label={endpoint('/metrics', '/metrics')}>
+                <span className="facts__note">{t('advEndpointMetrics')}</span>
             </Fact>
-            <Fact label={<a href="/api/export?format=json" target="_blank" rel="noreferrer"><code>/api/export</code></a>}>
-                {t('advEndpointExport')}
+            <Fact label={endpoint('/api/export', '/api/export?format=json')}>
+                <span className="facts__note">{t('advEndpointExport')}</span>
             </Fact>
-            <Fact label={<a href="/api/network" target="_blank" rel="noreferrer"><code>/api/network</code></a>}>
-                {t('advEndpointNetwork')}
+            <Fact label={endpoint('/api/network', '/api/network')}>
+                <span className="facts__note">{t('advEndpointNetwork')}</span>
             </Fact>
         </dl>
     );
@@ -101,7 +110,7 @@ function MonitoringRows({ t, health, ready }) {
 
 function LiveMonitoring({ t }) {
     const probes = useServerProbes(true);
-    return <MonitoringRows t={t} health={probes.health} ready={probes.ready} />;
+    return <MonitoringRows t={t} health={probes.health} ready={probes.ready} linked />;
 }
 
 export function SupervisionPanel({ t }) {

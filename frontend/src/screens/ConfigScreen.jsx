@@ -5,7 +5,7 @@ import WalletField from '../components/WalletField.jsx';
 import { checkWallet } from '../lib/walletCheck.js';
 import { computeOdds } from '../lib/odds.js';
 import { formatOneIn } from '../lib/oddsFormat.js';
-import { formatApproxHashrate } from '../lib/format.js';
+import { formatHashrateReadable } from '../lib/format.js';
 import { exportEverything } from '../lib/exportData.js';
 import { track } from '../lib/analytics.js';
 
@@ -159,7 +159,7 @@ export default function ConfigScreen({ t, lang, session, onRequestReset, onNavig
                         <dl className="facts">
                             <div className="facts__row">
                                 <dt>{t('cfgSumSpeed')}</dt>
-                                <dd>{running && hashrate > 0 ? formatApproxHashrate(hashrate) : t('cfgSumSpeedIdle')}</dd>
+                                <dd>{running && hashrate > 0 ? `≈ ${formatHashrateReadable(hashrate, lang)}` : t('cfgSumSpeedIdle')}</dd>
                             </div>
                             <div className="facts__row">
                                 <dt>{t('cfgSumLoad')}</dt>

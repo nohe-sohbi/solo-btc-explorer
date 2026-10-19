@@ -24,6 +24,8 @@ describe('formatBigNumber', () => {
     it('uses the French long scale (1e12 = billion, 1e9 = milliard)', () => {
         expect(formatBigNumber(12.7e12, 'fr')).toBe('12,7 billions');
         expect(formatBigNumber(34.7e9, 'fr')).toBe('34,7 milliards');
+        expect(formatBigNumber(34.7e9, 'fr', true)).toBe('35 milliards');
+        expect(formatBigNumber(3.24e12, 'fr', true)).toBe('3,2 billions');
         expect(formatBigNumber(4e15, 'fr')).toBe('4 billiards');
     });
 

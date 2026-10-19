@@ -44,6 +44,8 @@ input {
 }
 
 button {
+    /* Like a native button, the design's controls size their text by the font's own spacing. */
+    line-height: normal;
     cursor: pointer;
 }
 

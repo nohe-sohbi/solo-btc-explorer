@@ -343,6 +343,11 @@
     font-weight: 600;
 }
 
+/* The "?" button is taller than the label's text: don't let it stretch the row. */
+.stat-row .help-tip {
+    margin: -1px 0;
+}
+
 .stat-cell__tech {
     color: var(--text-dim);
     font-size: 12.5px;
@@ -465,12 +470,13 @@
 }
 
 .stat-cell + .stat-cell {
+    flex-basis: 249px; /* the mockup's cells are content-box: the divider adds a pixel */
     border-left: 1px solid var(--line);
 }
 
 .stat-cell__value {
     margin-top: 2px;
-    line-height: 1.4;
+    line-height: 1.5;
     font-family: var(--font-mono);
     font-size: 26px;
     font-weight: 500;
@@ -480,6 +486,10 @@
 .stat-cell__caption {
     color: var(--text-muted);
     font-size: 13px;
+}
+
+.stat-cell__caption code {
+    font-size: 1em;
 }
 
 /* ----- Dashboard: jackpot card ----- */
@@ -541,6 +551,10 @@
 .jackpot-card .facts {
     margin-top: 12px;
     margin-bottom: 14px;
+}
+
+.jackpot-card .facts__row {
+    font-size: 13px;
 }
 
 /* ----- Simulator ----- */

@@ -28,10 +28,14 @@ const HORIZON_LABEL_KEYS = {
     decade: 'horizonDecade',
 };
 
+// Inside a monospace `code` span the narrow no-break space of French grouping is
+// too thin: use a full-width no-break one, as the design does.
+const monoSpaced = (text) => text.replace(/\u202f/g, '\u00a0');
+
 // "that is about as likely as…" sentence for the lottery comparison.
 function describeLottery(lottery, lang, t) {
-    if (lottery.kind === 'less') return t('lotteryLess', { n: formatBigNumber(lottery.factor, lang) });
-    if (lottery.kind === 'more') return t('lotteryMore', { n: formatBigNumber(lottery.factor, lang) });
+    if (lottery.kind === 'less') return t('lotteryLess', { n: formatBigNumber(lottery.factor, lang, true) });
+    if (lottery.kind === 'more') return t('lotteryMore', { n: formatBigNumber(lottery.factor, lang, true) });
     return t('lotterySimilar');
 }
 
@@ -44,7 +48,7 @@ function describeTimescale(timescale, lang, t) {
         case 'universePercent':
             return t('scaleUniversePercent', { n });
         case 'history':
-            return t('scaleHistory', { n: formatBigNumber(timescale.value, lang) });
+            return t('scaleHistory', { n: formatBigNumber(timescale.value, lang, true) });
         case 'lifetimes':
             return t('scaleLifetimes');
         case 'underLifetime':
@@ -143,13 +147,13 @@ export default function ChancesScreen({ t, lang, hashrate, network }) {
                     {sim.hasData ? (
                         <>
                             <div className="result__label">{t('simTimeLabel')}</div>
-                            <div className="result__time">{formatDuration(sim.expectedSeconds, lang, t)}</div>
+                            <div className="result__time">{formatDuration(sim.expectedSeconds, lang, t, true)}</div>
                             {sim.timescale && <div className="result__compare">{describeTimescale(sim.timescale, lang, t)}</div>}
 
                             <dl className="result__pair">
                                 <div>
                                     <dt>{t('simDayLabel')}</dt>
-                                    <dd>{formatOneIn(sim.probPerDay, lang, t)}</dd>
+                                    <dd>{formatOneIn(sim.probPerDay, lang, t, true)}</dd>
                                 </div>
                                 <div>
                                     <dt>{t('simEvLabel')}</dt>
@@ -162,7 +166,7 @@ export default function ChancesScreen({ t, lang, hashrate, network }) {
                                 {sim.horizons.map((horizon) => (
                                     <div key={horizon.id} className="facts__row">
                                         <dt>{t(HORIZON_LABEL_KEYS[horizon.id])}</dt>
-                                        <dd>{formatChance(horizon.probability, lang, t)}</dd>
+                                        <dd>{formatChance(horizon.probability, lang, t, true)}</dd>
                                     </div>
                                 ))}
                             </dl>
@@ -192,7 +196,7 @@ export default function ChancesScreen({ t, lang, hashrate, network }) {
                         <Rich
                             text={
                                 network.priceUSD > 0
-                                    ? t('howP3', { scope, reward, price: formatUsdWhole(network.priceUSD, lang) })
+                                    ? t('howP3', { scope, reward, price: monoSpaced(formatUsdWhole(network.priceUSD, lang)) })
                                     : t('howP3NoPrice', { scope, reward })
                             }
                         />

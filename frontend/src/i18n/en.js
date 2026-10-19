@@ -142,7 +142,7 @@ export default {
     bestTitle: "Best attempt",
     bestTech: "difficulty",
     bestHelp: "Difficulty measures how rare a fingerprint is. To win a block you must reach the Bitcoin network's.",
-    bestGoal: "Target: {target}",
+    bestGoal: "Target: `{target}`",
 
     // ----- The jackpot -----
     jackpotLabel: "The jackpot: a block's reward",
