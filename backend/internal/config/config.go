@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/soloforge/backend/internal/btcaddr"
 )
+
+var workerNamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{1,64}$`)
 
 // Validation bounds for user-supplied configuration.
 const (
@@ -33,6 +36,7 @@ type Config struct {
 
 	// Wallet
 	WalletAddress string `json:"wallet_address"`
+	WorkerName    string `json:"worker_name"`
 
 	// Mining settings
 	MaxCPUPercent int `json:"max_cpu_percent"`
@@ -45,6 +49,7 @@ func DefaultConfig() *Config {
 		PoolURL:       "solo.ckpool.org",
 		PoolPort:      3333,
 		WalletAddress: "1FngDUBvDhPh9z3paCRHFEtHjnUMAFacn9",
+		WorkerName:    "",
 		MaxCPUPercent: 80,
 		NumWorkers:    4,
 	}
@@ -117,6 +122,27 @@ func (c *Config) GetWalletAddress() string {
 	return c.WalletAddress
 }
 
+// GetWorkerName returns the optional pool worker label thread-safely.
+func (c *Config) GetWorkerName() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.WorkerName
+}
+
+// GetStratumUsername returns the pool username. Pools that support named
+// workers conventionally accept ADDRESS.worker while others continue to work
+// with the address alone when the optional label is empty.
+func (c *Config) GetStratumUsername() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	address := strings.TrimSpace(c.WalletAddress)
+	worker := strings.TrimSpace(c.WorkerName)
+	if worker == "" {
+		return address
+	}
+	return address + "." + worker
+}
+
 // GetMaxCPUPercent returns the max CPU percentage thread-safely
 func (c *Config) GetMaxCPUPercent() int {
 	c.mu.RLock()
@@ -172,6 +198,17 @@ func ValidateUpdates(updates map[string]interface{}) error {
 		}
 	}
 
+	if v, ok := updates["worker_name"]; ok {
+		s, ok := v.(string)
+		if !ok {
+			return fmt.Errorf("worker_name must be a string")
+		}
+		trimmed := strings.TrimSpace(s)
+		if trimmed != "" && !workerNamePattern.MatchString(trimmed) {
+			return fmt.Errorf("worker_name must contain 1 to 64 letters, numbers, or underscores")
+		}
+	}
+
 	if v, ok := updates["max_cpu_percent"]; ok {
 		f, ok := v.(float64)
 		if !ok {
@@ -210,6 +247,9 @@ func (c *Config) Update(updates map[string]interface{}) {
 	}
 	if v, ok := updates["wallet_address"].(string); ok {
 		c.WalletAddress = v
+	}
+	if v, ok := updates["worker_name"].(string); ok {
+		c.WorkerName = strings.TrimSpace(v)
 	}
 	if v, ok := updates["max_cpu_percent"].(float64); ok {
 		c.MaxCPUPercent = int(v)
